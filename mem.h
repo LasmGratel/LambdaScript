@@ -13,12 +13,15 @@ typedef struct ArrayInfo
 } ArrayInfo;
 
 //Helpers to manipulate blocks, fixed-sized objects, arrays
+//Blocks are raw memory blocks that can be resized, 
+//objects are fixed blocks and arrays are blocks with a header structure
 
-#define lsM_newblock(L, usage, size) (ls_NULL)
-#define lsM_freeblock(L, usage, p, size) (void(0))
+#define lsM_newblock(L, usage, n) lsM_alloc_(L, ls_NULL, 0, n, usage)
+#define lsM_resizeblock(L, usage, p, o, n) lsM_alloc_(L, p, o, n, usage)
+#define lsM_freeblock(L, usage, p, n) CAST(void, lsM_alloc_(L, p, n, 0, usage));
 
 #define lsM_newobj(L, usage, t) lsM_alloc_(L, ls_NULL, 0, sizeof(t), usage)
-#define lsM_freeobj(L, usage, p, t) CAST(void, lsM_alloc_(L, p, sizeof(t), 0, usage));
+#define lsM_freeobj(L, usage, p, t) CAST(void, lsM_alloc_(L, p, sizeof(t), 0, usage))
 
 #define lsM_newarray(L, info, t, n) \
 	lsM_allocarray_(L, ls_NULL, (n) * sizeof(t), info)

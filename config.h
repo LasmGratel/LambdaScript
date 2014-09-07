@@ -6,5 +6,6 @@
 
 #define LS_USE_ASSERT
 #define LS_USE_APICHECK
+#define LS_USE_ALIGN_T
 
 #endif

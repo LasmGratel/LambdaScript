@@ -5,6 +5,9 @@
 #include "common.h"
 #include "state.h"
 #include "mem.h"
+#include "object.h"
+#include "string.h"
+#include "gc.h"
 
 static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 	(void)ud;  (void)osize;  /* not used */
@@ -28,6 +31,10 @@ int main()
 {
 	ls_State* L = ls_newstate(l_alloc, NULL);
 	void* p;
+
+	p = lsM_newblock(L, 0, 200);
+	p = lsM_resizeblock(L, 0, p, 200, 10);
+	lsM_freeblock(L, 0, p, 10);
 
 	p = lsM_newobj(L, 0, int[100]);
 	lsM_freeobj(L, 0, p, int[100]);

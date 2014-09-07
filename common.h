@@ -15,6 +15,18 @@
 #define G(L) (L->g)
 #define CAST(t, v) ((t) v)
 
+//Macros: others
+
+//Alignment
+#ifdef LS_USE_ALIGN_T
+#define LSI_ALIGNMENT_T	union { double u; void *s; long l; }
+#else
+#define LSI_ALIGNMENT_T	char
+#endif
+#define ls_AlignmentHeader LSI_ALIGNMENT_T _align
+
+#define ls_CommonHeader void* nothing_yet
+
 /* Error declaration */
 
 #define THROW(L, e, m) ((void)0) //TODO
@@ -35,12 +47,10 @@
 
 
 
-//Structure declarations
+//Type declarations
 
 typedef struct ls_State ls_State;
 typedef struct ls_GlobalState ls_GlobalState;
-
-//Typedefs
-
+typedef unsigned int ls_Hash;
 
 #endif
