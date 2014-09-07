@@ -4,23 +4,39 @@
 #ifndef LS_MEM_H
 #define LS_MEM_H
 
-#define lsM_newblock(L, w, s)
-#define lsM_freeblock(L, s, p)
+/* information used in array allocation */
+typedef struct ArrayInfo
+{
+	int usage;
+	int limit;
+	const char* what;
+} ArrayInfo;
 
-#define lsM_newobj(L, w, t)
-#define lsM_freeobj(L, t, p)
+//Helpers to manipulate blocks, fixed-sized objects, arrays
 
-#define lsM_newarray(L, w, t, n)
-#define lsM_resizearray(L, w, t, p, nold, nnew)
-#define lsM_freearray(L, t, p)
+#define lsM_newblock(L, info, size) (ls_NULL)
+#define lsM_freeblock(L, p, size) (void(0))
 
-#define lsM_setmemstat_g(g, u, nold, nnew) {\
-		g->memused[0] += (nnew) - (nold); \
-		if (u & LSM_ALLOC_USAGE) g->memused[lsM_allocusage(u)] += (nnew) - (nold); \
+#define lsM_newobj(L, info, t) lsM_alloc_(L, ls_NULL, info.f, sizeof(t))
+#define lsM_freeobj(L, p, t) lsM_alloc_(L, p, sizeof(t), 0);
+
+#define lsM_newarray(L, info, t, n) \
+	lsM_allocarray_(L, ls_NULL, (n) * sizeof(t), info)
+#define lsM_resizearray(L, info, p, t, nnew, limit) \
+	lsM_allocarray_(L, p, (nnew) * sizeof(t), info)
+#define lsM_freearray(L, info, p, t) \
+	lsM_allocarray_(L, p, 0, info)
+
+//Helpers to set memory statistics in ls_State
+//Note that memory usage includes those used by vm internally
+
+#define lsM_setmemstat_g(g, u, changed) {\
+		g->memused[0] += (changed); \
+		if (u & LSM_ALLOC_USAGE) g->memused[lsM_allocusage(u)] += (changed); \
 	}
-#define lsM_setmemstat(L, u, nold, nnew) lsM_setmemstat_g(G(L), u, nold, nnew)
+#define lsM_setmemstat(L, u, changed) lsM_setmemstat_g(G(L), u, changed)
 
 LSI_EXTERN void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new);
-LSI_EXTERN ls_noreturn lsM_toobig(ls_State* L, const char* what);
+LSI_EXTERN void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* info);
 
 #endif

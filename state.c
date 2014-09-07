@@ -22,7 +22,7 @@ LS_API ls_State* ls_newstate(ls_MemAllocator alloc, void* ud)
 	g->alloc = alloc;
 	g->alloc_ud = ud;
 	memset(g->memused, 0, sizeof(g->memused));
-	lsM_setmemstat_g(g, LSM_ALLOC_FIX, 0, sizeof(LG));
+	lsM_setmemstat_g(g, LSM_ALLOC_FIX, sizeof(LG));
 
 	/* setup local state */
 	ls_State* L = &lg->l;

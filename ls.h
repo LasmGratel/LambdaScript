@@ -1,3 +1,6 @@
+//ls.h
+//External header file#ifndef LS_LS_H
+
 #ifndef LS_LS_H
 #define LS_LS_H
 
@@ -10,8 +13,6 @@
 /* memory allocate type */
 
 #define LSM_ALLOC_UNKNOWN   0x00
-//ls.h
-//External header file
 
 #define LSM_ALLOC_STRATEGY  0x0f
 #define LSM_ALLOC_FIX       0x01
