@@ -24,8 +24,12 @@
 #define LSM_ALLOC_USAGE_N   0
 #define lsM_allocusage(n) ((n & LSM_ALLOC_USAGE) << 2)
 
-/* use signed to operate - when calculating memory usage */
-typedef int ls_MemSize;
+/* error number */
+#define LS_ERRRUN   1
+#define LS_ERRMEM   2
+
+/* use ptrdiff_t to operate minus when calculating memory usage */
+typedef ptrdiff_t ls_MemSize;
 
 /* s_old is memory allocate type when block is NULL (different from lua) */
 typedef void*(*ls_MemAllocator)(void* ud, void* block, ls_MemSize s_old, ls_MemSize s_new);
@@ -34,5 +38,7 @@ typedef struct ls_State ls_State;
 
 LS_API ls_State* ls_newstate(ls_MemAllocator alloc, void* ud);
 LS_API void ls_close(ls_State* L);
+
+LS_API ls_noreturn ls_throw(ls_State* L, int code, const char* msg, ...);
 
 #endif

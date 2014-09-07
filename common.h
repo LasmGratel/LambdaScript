@@ -1,8 +1,8 @@
 //common.h
 //For internal use only
 
-#ifndef LS_LIMITS_H
-#define LS_LIMITS_H
+#ifndef LS_COMMON_H
+#define LS_COMMON_H
 
 #include "config.h"
 
@@ -14,6 +14,10 @@
 
 #define G(L) (L->g)
 #define CAST(t, v) ((t) v)
+
+/* Error declaration */
+
+#define THROW(L, e, m) ((void)0) //TODO
 
 /* assert */
 #include <assert.h>
@@ -33,8 +37,8 @@
 
 //Structure declarations
 
-struct ls_State;
-struct ls_GlobalState;
+typedef struct ls_State ls_State;
+typedef struct ls_GlobalState ls_GlobalState;
 
 //Typedefs
 

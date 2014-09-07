@@ -14,18 +14,17 @@ typedef struct ArrayInfo
 
 //Helpers to manipulate blocks, fixed-sized objects, arrays
 
-#define lsM_newblock(L, info, size) (ls_NULL)
+#define lsM_newblock(L, usage, size) (ls_NULL)
 #define lsM_freeblock(L, p, size) (void(0))
 
-#define lsM_newobj(L, info, t) lsM_alloc_(L, ls_NULL, info.f, sizeof(t))
-#define lsM_freeobj(L, p, t) lsM_alloc_(L, p, sizeof(t), 0);
+#define lsM_newobj(L, usage, t) lsM_alloc_(L, ls_NULL, usage, sizeof(t))
+#define lsM_freeobj(L, p, t) CAST(void, lsM_alloc_(L, p, sizeof(t), 0));
 
 #define lsM_newarray(L, info, t, n) \
 	lsM_allocarray_(L, ls_NULL, (n) * sizeof(t), info)
-#define lsM_resizearray(L, info, p, t, nnew, limit) \
-	lsM_allocarray_(L, p, (nnew) * sizeof(t), info)
-#define lsM_freearray(L, info, p, t) \
-	lsM_allocarray_(L, p, 0, info)
+#define lsM_resizearray(L, info, p, t, n) \
+	lsM_allocarray_(L, p, (n) * sizeof(t), info)
+#define lsM_freearray(L, p) CAST(void, lsM_freearray_(L, p))
 
 //Helpers to set memory statistics in ls_State
 //Note that memory usage includes those used by vm internally
@@ -38,5 +37,6 @@ typedef struct ArrayInfo
 
 LSI_EXTERN void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new);
 LSI_EXTERN void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* info);
+LSI_EXTERN void lsM_freearray_(ls_State* L, void* block);
 
 #endif
