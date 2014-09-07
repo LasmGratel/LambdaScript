@@ -30,12 +30,12 @@ int main()
 	void* p;
 
 	p = lsM_newobj(L, 0, int[100]);
-	lsM_freeobj(L, p, int[100]);
+	lsM_freeobj(L, 0, p, int[100]);
 
 	ArrayInfo info = {0, INT_MAX, "test"};
 	p = lsM_newarray(L, &info, int, 10);
 	p = lsM_resizearray(L, &info, p, int, 100);
-	lsM_freearray(L, p);
+	lsM_freearray(L, &info, p);
 
 	ls_close(L);
 	return 0;

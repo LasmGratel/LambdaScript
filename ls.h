@@ -1,5 +1,5 @@
 //ls.h
-//External header file#ifndef LS_LS_H
+//External header file
 
 #ifndef LS_LS_H
 #define LS_LS_H
