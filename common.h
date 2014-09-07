@@ -22,12 +22,12 @@
 /* assert */
 #include <assert.h>
 #define ls_forceassert(e) assert(e)
-#ifdef LS_O_USE_ASSERT
+#ifdef LS_USE_ASSERT
 #define ls_assert(e) ls_forceassert(e)
 #else
 #define ls_assert(e) (void(0))
 #endif
-#ifdef LS_O_USE_APICHECK
+#ifdef LS_USE_APICHECK
 #define ls_apicheck(e) ls_forceassert(e)
 #else
 #define ls_apicheck(e) (void(0))
