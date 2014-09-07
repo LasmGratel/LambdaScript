@@ -1,9 +1,13 @@
 submodules
 -----
 lua?_xxxx
+
 C: gc
+
 I: internal common
+
 M: memory
+
 S: string
 
 
