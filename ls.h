@@ -12,6 +12,8 @@
 
 #define ls_noreturn void
 
+#define ls_Number double
+
 /* memory allocate type */
 
 #define LSM_ALLOC_UNKNOWN   0x00

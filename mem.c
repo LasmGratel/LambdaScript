@@ -3,11 +3,16 @@
 #include "state.h"
 #include "mem.h"
 
-#define ALLOC_FAILED ls_throw(L, LS_ERRMEM, "memory allocation allocation failed")
+#define BLOCK_MAX_SIZE 0x10000
+#define ALLOC_FAILED ls_throw(L, LS_ERRMEM, "memory allocation failed: allocator returned NULL")
 
 void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new, int usage)
 {
 	ls_assert(s_old >= 0 && s_new >= 0);
+	if (s_new > BLOCK_MAX_SIZE)
+	{
+		ls_throw(L, LS_ERRRUN, "memory allocation failed: block is too large");
+	}
 	ls_MemSize real_old = block ? s_old : 0;
 	ls_GlobalState* g = G(L);
 	void* ret = (*g->alloc)(g->alloc_ud, block, s_old, s_new);

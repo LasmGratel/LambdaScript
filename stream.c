@@ -2,7 +2,7 @@
 #include "common.h"
 #include "stream.h"
 
-void lsZ_createstream(ls_Stream* s, ls_InputReader r, void* ud)
+void lsZ_creates(ls_Stream* s, ls_InputReader r, void* ud)
 {
 	s->r = r;
 	s->ud = ud;

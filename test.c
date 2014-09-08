@@ -6,6 +6,7 @@
 #include "string.h"
 #include "gc.h"
 #include "stream.h"
+#include "lex.h"
 
 static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 	(void)ud;  (void)osize;  /* not used */
@@ -47,36 +48,48 @@ int main()
 {
 	ls_State* L = ls_newstate(l_alloc, NULL);
 
-	/* Memory allocation test */
-	void* p;
+	/* Memory allocation test */ {
+		void* p;
 
-	p = lsM_newblock(L, 0, 200);
-	p = lsM_resizeblock(L, 0, p, 200, 10);
-	lsM_freeblock(L, 0, p, 10);
+		p = lsM_newblock(L, 0, 200);
+		p = lsM_resizeblock(L, 0, p, 200, 10);
+		lsM_freeblock(L, 0, p, 10);
 
-	p = lsM_newobj(L, 0, int[100]);
-	lsM_freeobj(L, 0, p, int[100]);
+		p = lsM_newobj(L, 0, int[100]);
+		lsM_freeobj(L, 0, p, int[100]);
 
-	ArrayInfo info = {0, INT_MAX, "test"};
-	p = lsM_newarray(L, &info, int, 10);
-	p = lsM_resizearray(L, &info, p, int, 100);
-	lsM_freearray(L, &info, p);
+		ArrayInfo info = {0, INT_MAX, "test"};
+		p = lsM_newarray(L, &info, int, 10);
+		p = lsM_resizearray(L, &info, p, int, 100);
+		lsM_freearray(L, &info, p);
 
-	/* String object test */
-	ls_Object* obj;
-	obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
-	printf(lsS_tocstr(&obj->s));
-	
-	/* String stream test */
-	LoadS ss = { "This is a string.\n", 19 };
-	ls_Stream stream;
-	ls_Char c;
-	lsZ_createstream(&stream, getS, &ss);
-	while (lsZ_readb(&stream, &c), c != ls_EOS)
-	{
-		putchar(c);
+		/* String object test */
+		ls_Object* obj;
+		obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
+		printf(lsS_tocstr(&obj->s));
 	}
-	lsZ_close(&stream);
+
+	/* String stream test */ {
+		LoadS ss = { "This is a string.\n", 18 };
+		ls_Stream stream;
+		ls_Char c;
+		lsZ_creates(&stream, getS, &ss);
+		while (lsZ_readb(&stream, &c), c != ls_EOS)
+		{
+			putchar(c);
+		}
+		lsZ_close(&stream);
+	}
+
+	/* Memory buffer test */ {
+		ls_MemBuff buf;
+		lsZ_newbuf(L, &buf);
+		lsZ_appendbuf(&buf, 'O');
+		lsZ_appendbuf(&buf, 'K');
+		lsZ_appendbuf(&buf, '\n');
+		lsZ_appendbuf(&buf, 0);
+		printf(buf.buf);
+	}
 
 	ls_close(L);
 	return 0;

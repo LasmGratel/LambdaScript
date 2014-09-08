@@ -1,7 +1,7 @@
 #ifndef LS_STREAM_H
 #define LS_STREAM_H
 
-//use int to allow EOF(-1)
+//use int to allow EOS(-1)
 #define ls_Char int
 
 #define ls_EOS (CAST(ls_Char, -1))
@@ -18,6 +18,14 @@ typedef struct ls_Stream
 	ls_Char peek; //value at pos
 } ls_Stream;
 
+typedef struct ls_MemBuff
+{
+	ls_MemSize cap; //length of buffer
+	ls_MemSize sz; //length of data
+	char* buf;
+	ls_State* L;
+} ls_MemBuff;
+
 /* stream bit manipulate */
 
 //Peek a char and don't change pos
@@ -33,9 +41,17 @@ typedef struct ls_Stream
 
 /* stream reading */
 //Create a new stream from ls_InputReader
-LSI_EXTERN void lsZ_createstream(ls_Stream* s, ls_InputReader r, void* ud);
+LSI_EXTERN void lsZ_creates(ls_Stream* s, ls_InputReader r, void* ud);
 //Refill the stream, set peek// and return peeked char
 LSI_EXTERN void lsZ_fills(ls_Stream* s);
 
-
+/* Buffer manipulate */
+//Buffer block information
+#define MEMBUFFER_BLOCK_USAGE 0
+//Initialize a new buffer
+#define lsZ_newbuf(_L, b) ((void)((b)->cap = (b)->sz = 0, (b)->buf = ls_NULL, (b)->L = _L))
+#define lsZ_appendbuf(b, c) ( (b)->cap > (b)->sz ? (void)((b)->buf[(b)->sz++] = c) : \
+	(void)((b)->buf = lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_USAGE, (b)->buf, (b)->cap, (b)->cap = ((b)->cap * 2 + 16)), (b)->buf[(b)->sz++] = c) \
+	)
+#define lsZ_closebuf(b) ((void) lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_USAGE, (b)->buf, (b)->cap, 0), (b)->cap = (b)->sz = 0, (b)->buf = ls_NULL)
 #endif
