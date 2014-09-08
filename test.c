@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdarg.h>
-
 #include "ls.h"
 #include "common.h"
 #include "state.h"
@@ -30,6 +27,8 @@ LS_API ls_noreturn ls_throw(ls_State* L, int code, const char* msg, ...)
 int main()
 {
 	ls_State* L = ls_newstate(l_alloc, NULL);
+
+	/* Memory allocation test */
 	void* p;
 
 	p = lsM_newblock(L, 0, 200);
@@ -44,6 +43,11 @@ int main()
 	p = lsM_resizearray(L, &info, p, int, 100);
 	lsM_freearray(L, &info, p);
 
+	/* String object test */
+	ls_Object* obj;
+	obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!", "Lambda"));
+	printf(lsS_tocstr(&obj->s));
+	
 	ls_close(L);
 	return 0;
 }
