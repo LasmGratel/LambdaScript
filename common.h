@@ -10,6 +10,8 @@
 
 #define ls_NULL ((void*)0)
 
+#define LS_OBJ_STRING 1
+
 //Macros: functions
 
 #define G(L) (L->g)
@@ -51,6 +53,8 @@
 
 typedef struct ls_State ls_State;
 typedef struct ls_GlobalState ls_GlobalState;
+typedef union ls_Object ls_Object;
+
 typedef unsigned int ls_Hash;
 
 #endif

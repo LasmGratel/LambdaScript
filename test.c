@@ -5,6 +5,7 @@
 #include "object.h"
 #include "string.h"
 #include "gc.h"
+#include "stream.h"
 
 static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 	(void)ud;  (void)osize;  /* not used */
@@ -16,12 +17,30 @@ static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 		return realloc(ptr, nsize);
 }
 
-LS_API ls_noreturn ls_throw(ls_State* L, int code, const char* msg, ...)
+ls_noreturn ls_throw(ls_State* L, int code, const char* msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
 	vprintf(msg, args);
 	va_end(args);
+}
+
+typedef struct LoadS
+{
+	const char* str;
+	ls_MemSize len;
+} LoadS;
+
+static const char* getS(void* ud, size_t* sz)
+{
+	LoadS* s = CAST(LoadS*, ud);
+	if (s->len)
+	{
+		*sz = s->len;
+		s->len = 0;
+		return s->str;
+	}
+	return ls_NULL;
 }
 
 int main()
@@ -45,9 +64,20 @@ int main()
 
 	/* String object test */
 	ls_Object* obj;
-	obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!", "Lambda"));
+	obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
 	printf(lsS_tocstr(&obj->s));
 	
+	/* String stream test */
+	LoadS ss = { "This is a string.\n", 19 };
+	ls_Stream stream;
+	ls_Char c;
+	lsZ_createstream(&stream, getS, &ss);
+	while (lsZ_readb(&stream, &c), c != ls_EOS)
+	{
+		putchar(c);
+	}
+	lsZ_close(&stream);
+
 	ls_close(L);
 	return 0;
 }

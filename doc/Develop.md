@@ -1,14 +1,10 @@
 submodules
 -----
-lua?_xxxx
-
-C: gc
-
-I: internal common
-
-M: memory
-
-S: string
+ls?_xxxx
+* C: gc
+* I: internal common
+* M: memory
+* S: string
 
 
 differences with lua
@@ -25,7 +21,12 @@ Use a ArrayInfo structure to store array allocating information.
 GC
 `luaC_newobj' doesn't have a offset field (which in lua is only used in LX).
 
+Stream
+Reader function doesn't receive ls_State pointer (which is in most cases useless).
+
 todos
 -----
-Do gc in memory allocation functions.
-Finish `ls_close'.
+* Do gc in memory allocation functions.
+* Finish `ls_close'.
+* THROW, ls_throw
+* String pool for short string reuse
