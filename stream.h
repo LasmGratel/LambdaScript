@@ -8,6 +8,8 @@
 
 typedef struct ls_Stream
 {
+	const char* chunkname;
+
 	ls_InputReader r;
 	void* ud;
 
@@ -35,23 +37,25 @@ typedef struct ls_MemBuff
 	(s)->peek = (s)->buf[++((s)->pos)] \
 	: lsZ_fills(s)))
 //Peek and next
-#define lsZ_readb(s, c) (*(c) = lsZ_peekb(s), lsZ_nextb(s))
+#define lsZ_readb(s, c) ((c) = lsZ_peekb(s), lsZ_nextb(s))
 //Close a stream (do nothing)
 #define lsZ_close(s) ((void)0)
 
 /* stream reading */
 //Create a new stream from ls_InputReader
-LSI_EXTERN void lsZ_creates(ls_Stream* s, ls_InputReader r, void* ud);
+LSI_EXTERN void lsZ_creates(ls_Stream* s, const char* chunkname, ls_InputReader r, void* ud);
 //Refill the stream, set peek// and return peeked char
 LSI_EXTERN void lsZ_fills(ls_Stream* s);
 
 /* Buffer manipulate */
 //Buffer block information
-#define MEMBUFFER_BLOCK_USAGE 0
+#define MEMBUFFER_BLOCK_STRATEGY (LSM_ALLOC_VARIABLE | LSM_ALLOC_MEDIUM | LSM_ALLOC_TEMPORARY)
 //Initialize a new buffer
 #define lsZ_newbuf(_L, b) ((void)((b)->cap = (b)->sz = 0, (b)->buf = ls_NULL, (b)->L = _L))
+#define lsZ_clearbuf(b) ((void)((b)->sz = 0))
 #define lsZ_appendbuf(b, c) ( (b)->cap > (b)->sz ? (void)((b)->buf[(b)->sz++] = c) : \
-	(void)((b)->buf = lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_USAGE, (b)->buf, (b)->cap, (b)->cap = ((b)->cap * 2 + 16)), (b)->buf[(b)->sz++] = c) \
+	(void)((b)->buf = lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_STRATEGY, (b)->buf, (b)->cap, (b)->cap = ((b)->cap * 2 + 16)), (b)->buf[(b)->sz++] = c) \
 	)
-#define lsZ_closebuf(b) ((void) lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_USAGE, (b)->buf, (b)->cap, 0), (b)->cap = (b)->sz = 0, (b)->buf = ls_NULL)
+#define lsZ_closebuf(b) ((void) lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_STRATEGY, (b)->buf, (b)->cap, 0), (b)->cap = (b)->sz = 0, (b)->buf = ls_NULL)
+#define lsZ_bufsize(b) ((b)->sz)
 #endif

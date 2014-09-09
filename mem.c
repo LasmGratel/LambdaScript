@@ -6,7 +6,7 @@
 #define BLOCK_MAX_SIZE 0x10000
 #define ALLOC_FAILED ls_throw(L, LS_ERRMEM, "memory allocation failed: allocator returned NULL")
 
-void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new, int usage)
+void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new, int flag)
 {
 	ls_assert(s_old >= 0 && s_new >= 0);
 	if (s_new > BLOCK_MAX_SIZE)
@@ -22,7 +22,7 @@ void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new, i
 		ALLOC_FAILED;
 	}
 	ls_assert((ret == ls_NULL) != (s_new > 0));
-	lsM_setmemstat_g(g, usage, s_new - real_old);
+	lsM_setmemstat_g(g, flag, s_new - real_old);
 	return ret;
 }
 
@@ -54,7 +54,7 @@ void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* i
 	if (!block)
 	{
 		//new block
-		header = lsM_alloc_(L, ls_NULL, info->usage, real_size, info->usage);
+		header = lsM_alloc_(L, ls_NULL, info->flag, real_size, info->flag);
 		if (!header)
 		{
 			ALLOC_FAILED;
@@ -64,7 +64,7 @@ void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* i
 	{
 		//change size
 		header = ARRAY_TO_HEADER(block);
-		header = lsM_alloc_(L, header, header->n, real_size, info->usage);
+		header = lsM_alloc_(L, header, header->n, real_size, info->flag);
 		if (!header)
 		{
 			ls_apicheck(real_size > header->n);
@@ -75,12 +75,12 @@ void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* i
 	return HEADER_TO_ARRAY(header);
 }
 
-void lsM_freearray_(ls_State* L, void* block, int usage)
+void lsM_freearray_(ls_State* L, void* block, int flag)
 {
 	ls_GlobalState* g = G(L);
 	ArrayHeader* header = ARRAY_TO_HEADER(block);
 	ls_MemSize n = -header->n;
 	void* ret = (*g->alloc)(g->alloc_ud, header, header->n, 0);
-	lsM_setmemstat_g(g, usage, n);
+	lsM_setmemstat_g(g, flag, n);
 	ls_assert(ret == ls_NULL);
 }

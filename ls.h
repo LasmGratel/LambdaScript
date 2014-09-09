@@ -20,8 +20,11 @@
 
 #define LSM_ALLOC_STRATEGY  0x0f
 #define LSM_ALLOC_FIX       0x01
+#define LSM_ALLOC_VARIABLE  0x00
 #define LSM_ALLOC_LARGE     0x02
-#define LSM_ALLOC_VARIABLE  0x03
+#define LSM_ALLOC_MEDIUM    0x00
+#define LSM_ALLOC_PERMANENT 0x04
+#define LSM_ALLOC_TEMPORARY 0x00
 #define lsM_allocstrgy(n) (n & LSM_ALLOC_STRATEGY)
 
 #define LSM_ALLOC_USAGE     0xf0

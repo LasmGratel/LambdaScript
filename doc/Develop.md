@@ -28,8 +28,10 @@ Stream
 
 todos
 -----
+* !Use a simple test system for test.c.
 * Do gc in memory allocation functions.
 * Finish `ls_close'.
-* THROW, ls_throw
-* String pool for short string reuse
-* Add filter to stream
+* THROW, ls_throw.
+* String pool for short string reuse.
+* Add filter to stream.
+* Specify usage in internal allocation.

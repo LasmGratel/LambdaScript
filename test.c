@@ -8,6 +8,10 @@
 #include "stream.h"
 #include "lex.h"
 
+#define set_string_stream(s, str) { \
+LoadS ss = { str, strlen(str) }; \
+lsZ_creates((s), "<string>", getS, &ss); }
+
 static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 	(void)ud;  (void)osize;  /* not used */
 	if (nsize == 0) {
@@ -67,14 +71,16 @@ int main()
 		ls_Object* obj;
 		obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
 		printf(lsS_tocstr(&obj->s));
+		//ls_Object can not be freed
 	}
 
 	/* String stream test */ {
-		LoadS ss = { "This is a string.\n", 18 };
+		//LoadS ss = { "This is a string.\n", 18 };
 		ls_Stream stream;
+		set_string_stream(&stream, "This is a string.\n")
 		ls_Char c;
-		lsZ_creates(&stream, getS, &ss);
-		while (lsZ_readb(&stream, &c), c != ls_EOS)
+		//lsZ_creates(&stream, "<string>", getS, &ss);
+		while (lsZ_readb(&stream, c), c != ls_EOS)
 		{
 			putchar(c);
 		}
@@ -89,6 +95,46 @@ int main()
 		lsZ_appendbuf(&buf, '\n');
 		lsZ_appendbuf(&buf, 0);
 		printf(buf.buf);
+		lsZ_closebuf(&buf);
+	}
+
+	/* Lexical analyzer */ {
+		const char* name[] = {
+			"EOS",
+			"Symbol",
+			"Identifier",
+			"Number",
+			"Keyword",
+			"Single line comment",
+			"Multiline comment"
+		};
+		ls_Stream stream;
+		ls_LexState lex;
+		set_string_stream(&stream, "line113.841\nline20E2//line348012-s\r\nline4-/*m*/");
+		lsX_initlex(L, &lex, &stream);
+		do
+		{
+			lsX_next(&lex);
+			printf("%s: ", name[lex.current.t]);
+			switch (lex.current.t)
+			{
+			case TOKEN_SYMBOL:
+				printf("%c\n", lex.current.d.sym);
+				break;
+			case TOKEN_NUMBER:
+				printf("%s\n", lex.current.d.str);
+				break;
+			case TOKEN_COMMENT_S:
+			case TOKEN_COMMENT_M:
+				printf("%s\n", lex.current.d.str);
+				break;
+			default:
+				printf("\n");
+				break;
+			}
+		} while (lex.current.t != TOKEN_EOS);
+		lsX_freelex(&lex);
+		lsZ_close(&stream);
 	}
 
 	ls_close(L);
