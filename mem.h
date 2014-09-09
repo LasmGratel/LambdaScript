@@ -38,6 +38,7 @@ typedef struct ArrayInfo
 	}
 #define lsM_setmemstat(L, u, changed) lsM_setmemstat_g(G(L), u, changed)
 
+//lsM_alloc_: s_old is just 0 if its a new block
 LSI_EXTERN void* lsM_alloc_(ls_State* L, void* block, ls_MemSize s_old, ls_MemSize s_new, int flag);
 LSI_EXTERN void* lsM_allocarray_(ls_State* L, void* block, ls_MemSize newsize, ArrayInfo* info);
 LSI_EXTERN void lsM_freearray_(ls_State* L, void* block, int flag);

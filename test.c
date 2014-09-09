@@ -75,16 +75,14 @@ int main()
 	}
 
 	/* String stream test */ {
-		//LoadS ss = { "This is a string.\n", 18 };
 		ls_Stream stream;
 		set_string_stream(&stream, "This is a string.\n")
 		ls_Char c;
-		//lsZ_creates(&stream, "<string>", getS, &ss);
 		while (lsZ_readb(&stream, c), c != ls_EOS)
 		{
 			putchar(c);
 		}
-		lsZ_close(&stream);
+		lsZ_closes(&stream);
 	}
 
 	/* Memory buffer test */ {
@@ -134,7 +132,7 @@ int main()
 			}
 		} while (lex.current.t != TOKEN_EOS);
 		lsX_freelex(&lex);
-		lsZ_close(&stream);
+		lsZ_closes(&stream);
 	}
 
 	ls_close(L);

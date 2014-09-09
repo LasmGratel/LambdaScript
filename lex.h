@@ -26,7 +26,7 @@ typedef struct ls_Token
 typedef struct ls_LexState
 {
 	ls_Stream* s;     //Input
-	ls_MemBuff buf;  //Used to store when reading
+	ls_MemBuff buf;   //Used to store when reading
 	ls_MemSize lno;   //Line number
 	ls_Token current; //Current token
 } ls_LexState;

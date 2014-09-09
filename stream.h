@@ -39,7 +39,7 @@ typedef struct ls_MemBuff
 //Peek and next
 #define lsZ_readb(s, c) ((c) = lsZ_peekb(s), lsZ_nextb(s))
 //Close a stream (do nothing)
-#define lsZ_close(s) ((void)0)
+#define lsZ_closes(s) ((void)0)
 
 /* stream reading */
 //Create a new stream from ls_InputReader
