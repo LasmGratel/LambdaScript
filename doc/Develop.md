@@ -28,6 +28,7 @@ Stream
 
 todos
 -----
+* Make a new buffer larger
 * Use a simple test system for test.c.
 * Do gc in memory allocation functions.
 * Finish `ls_close'.
