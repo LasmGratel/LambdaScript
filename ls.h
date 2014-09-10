@@ -41,7 +41,7 @@ typedef ptrdiff_t ls_MemSize;
 /* s_old is memory allocate type when block is NULL (different from lua) */
 typedef void*(*ls_MemAllocator)(void* ud, void* block, ls_MemSize s_old, ls_MemSize s_new);
 
-typedef const char * (*ls_InputReader) (void* ud, size_t* sz);
+typedef const char * (*ls_InputReader) (void* ud, ls_MemSize* sz);
 
 typedef struct ls_State ls_State;
 

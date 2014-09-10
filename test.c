@@ -36,7 +36,7 @@ typedef struct LoadS
 	ls_MemSize len;
 } LoadS;
 
-static const char* getS(void* ud, size_t* sz)
+static const char* getS(void* ud, ls_MemSize* sz)
 {
 	LoadS* s = CAST(LoadS*, ud);
 	if (s->len)
@@ -120,7 +120,7 @@ int main()
 				printf("%c\n", lex.current.d.sym);
 				break;
 			case TOKEN_NUMBER:
-				printf("%s\n", lex.current.d.str);
+				printf("%f\n", lex.current.d.n);
 				break;
 			case TOKEN_COMMENT_S:
 			case TOKEN_COMMENT_M:

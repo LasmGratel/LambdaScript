@@ -28,7 +28,7 @@ Stream
 
 todos
 -----
-* !Use a simple test system for test.c.
+* Use a simple test system for test.c.
 * Do gc in memory allocation functions.
 * Finish `ls_close'.
 * THROW, ls_throw.

@@ -1,3 +1,5 @@
+#include <errno.h>
+
 #include "ls.h"
 #include "common.h"
 #include "mem.h"
@@ -96,15 +98,21 @@ static void number(ls_LexState* ls, char c)
 		check(lisdigit(c), "bad number format");
 		append_buf_while(lisdigit(c));
 	}
-	set_as_buf(); //TODO return a number instead of string
+	lsZ_appendbuf(&ls->buf, '\0');
+	char* e;
+	ls->current.d.n = strtod(ls->buf.buf, &e);
+	if (*e != '\0' || errno == ERANGE)
+	{
+		lex_error("bad number format");
+	}
 }
 
 void lsX_next(ls_LexState* ls)
 {
-	//Clear the buffer and read the first char to determine where to go
+	//Read the first char to determine where to go
 	char c;
 	next();
-	while (1)//useless?
+	for (;;)
 	{
 		switch (c)
 		{
