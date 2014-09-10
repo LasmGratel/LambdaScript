@@ -8,6 +8,7 @@
 #define TOKEN_KEYWORD     4
 #define TOKEN_COMMENT_S   5
 #define TOKEN_COMMENT_M   6
+#define TOKEN_STRING      7
 
 typedef struct ls_Token
 {

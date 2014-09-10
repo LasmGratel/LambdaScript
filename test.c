@@ -28,6 +28,7 @@ ls_noreturn ls_throw(ls_State* L, int code, const char* msg, ...)
 	va_start(args, msg);
 	vprintf(msg, args);
 	va_end(args);
+	getchar();
 }
 
 typedef struct LoadS
@@ -104,11 +105,13 @@ int main()
 			"Number",
 			"Keyword",
 			"Single line comment",
-			"Multiline comment"
+			"Multiline comment",
+			"String literal"
 		};
 		ls_Stream stream;
 		ls_LexState lex;
 		set_string_stream(&stream, 
+			"\a = \"\\\"sac\\tewf\\nq\\\n\rewfwe\";\n"
 			"int main()\n"
 			"{\n"
 			"	ls_State* L = ls_newstate(l_alloc, NULL);\n"
@@ -136,6 +139,7 @@ int main()
 			case TOKEN_COMMENT_S:
 			case TOKEN_COMMENT_M:
 			case TOKEN_IDENTIFIER:
+			case TOKEN_STRING:
 				printf("%s\n", lex.current.d.str);
 				break;
 			default:

@@ -13,7 +13,7 @@
 //read comment as a single token to allow in-comment metadata
 #define LS_COMMENT_AS_TOKEN
 
-#define lex_error(...) ls_throw(ls->buf.L, LS_ERRRUN, __VA_ARGS__)
+#define lex_error(...) ls_throw(ls->buf.L, LS_ERRRUN, "" __VA_ARGS__)
 
 /* Helper functions. Only valid in the loop of lsX_next */
 
@@ -46,13 +46,9 @@
 //current char is not a token, try next
 #define read_again() next(); break
 //if cond is false, raise error
-#define check(cond, ...) if (!(cond)) lex_error(__VA_ARGS__)
-
-#ifdef PRINT_BUFFER_AS_STRING
+#define check(cond, ...) if (!(cond)) { lex_error(__VA_ARGS__); return; }
+//write '\0' to the end to make it a c-string
 #define buf_finished() lsZ_appendbuf(&ls->buf, 0)
-#else
-#define buf_finished() ((void)0)
-#endif
 
 static void multiline_comment(ls_LexState* ls)
 {
@@ -104,6 +100,57 @@ static void number(ls_LexState* ls, char c)
 	if (*e != '\0' || errno == ERANGE)
 	{
 		lex_error("bad number format");
+		return;
+	}
+}
+
+static void string(ls_LexState* ls)
+{
+	char c;
+	for (;;)
+	{
+		next();
+		switch (c)
+		{
+		case '\\':
+			next();
+			switch (c)
+			{
+			case 'a': c = '\a'; goto save_it;
+			case 'b': c = '\b'; goto save_it;
+			case 'f': c = '\f'; goto save_it;
+			case 'n': c = '\n'; goto save_it;
+			case 'r': c = '\r'; goto save_it;
+			case 't': c = '\t'; goto save_it;
+			case 'v': c = '\v'; goto save_it;
+			//case 'x': c = readhexaesc(ls); goto read_save;
+			case '\n': case '\r':
+				finish_new_line();
+				c = '\n';
+				goto save_it;
+			case '\\': case '\"': case '\'':
+				goto save_it;
+			case ls_EOS:
+				goto no_save;  /* will raise an error next loop */
+			default:
+				lex_error("unknown escape sequences");
+				return;
+			}
+save_it:
+			append_buf();
+no_save:
+			break;
+		case '"':
+			set_as_buf();
+			return;
+		case '\n':
+		case ls_EOS:
+			lex_error("unexpected end of string");
+			return;
+		default:
+			append_buf();
+			break;
+		}
 	}
 }
 
@@ -158,6 +205,9 @@ void lsX_next(ls_LexState* ls)
 			return_type(TOKEN_NUMBER);
 		case ls_EOS:
 			return_type(TOKEN_EOS);
+		case '"':
+			string(ls);
+			return_type(TOKEN_STRING);
 		default:
 			if (lislalpha(c))
 			{
