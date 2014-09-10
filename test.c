@@ -108,7 +108,18 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		set_string_stream(&stream, "line113.841\nline20E2//line348012-s\r\nline4-/*m*/");
+		set_string_stream(&stream, 
+			"int main()\n"
+			"{\n"
+			"	ls_State* L = ls_newstate(l_alloc, NULL);\n"
+			"\n"
+			"	/* Memory allocation test */ {\n"
+			"		void* p;\n"
+			"\n"
+			"		p = lsM_newblock(L, 0, 200);\n"
+			"		p = lsM_resizeblock(L, 0, p, 200, 10);\n"
+			"		lsM_freeblock(L, 0, p, 10);\n"
+			);
 		lsX_initlex(L, &lex, &stream);
 		do
 		{
@@ -124,6 +135,7 @@ int main()
 				break;
 			case TOKEN_COMMENT_S:
 			case TOKEN_COMMENT_M:
+			case TOKEN_IDENTIFIER:
 				printf("%s\n", lex.current.d.str);
 				break;
 			default:

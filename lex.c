@@ -159,8 +159,19 @@ void lsX_next(ls_LexState* ls)
 		case ls_EOS:
 			return_type(TOKEN_EOS);
 		default:
-			ls->current.d.sym = c;
-			return_type(TOKEN_SYMBOL);
+			if (lislalpha(c))
+			{
+				clear_buf();
+				append_buf();
+				append_buf_while(lislalnum(c) || c == '_');
+				set_as_buf();
+				return_type(TOKEN_IDENTIFIER);
+			}
+			else
+			{
+				ls->current.d.sym = c;
+				return_type(TOKEN_SYMBOL);
+			}
 		}
 	}
 }
