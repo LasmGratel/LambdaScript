@@ -11,7 +11,7 @@ LSI_EXTERN ls_Proto* lsF_newproto(ls_State *L)
 	//f->sizek = 0;
 	//f->p = NULL;
 	//f->sizep = 0;
-	f->code = NULL;
+	//f->code = NULL;
 	//f->cache = NULL;
 	//f->sizecode = 0;
 	//f->lineinfo = NULL;

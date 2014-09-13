@@ -28,11 +28,12 @@ typedef struct ls_LocVar {
 typedef struct ls_Proto
 {
 	ls_CommonHeader;
+	ls_LocVar *locvars;  /* information about local variables (debug information) */
+	int sizelocvars;
 	//TValue *k;  /* constants used by the function */
-	Instruction *code;
+	//Instruction *code;
 	//struct ls_Proto **p;  /* functions defined inside the function */
 	//int *lineinfo;  /* map from opcodes to source lines (debug information) */
-	ls_LocVar *locvars;  /* information about local variables (debug information) */
 	//Upvaldesc *upvalues;  /* upvalue information */
 	//union Closure *cache;  /* last created closure with this prototype */
 	//TString  *source;  /* used for debug information */
@@ -41,7 +42,6 @@ typedef struct ls_Proto
 	//int sizecode;
 	//int sizelineinfo;
 	//int sizep;  /* size of `p' */
-	int sizelocvars;
 	//int linedefined;
 	//int lastlinedefined;
 	//GCObject *gclist;

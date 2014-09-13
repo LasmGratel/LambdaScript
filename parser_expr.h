@@ -48,27 +48,10 @@ static const struct
 	{ 2, 2 }, { 1, 1 }                   /* and, or */
 };
 
-static int singlevaraux(ls_ParserData* pd, ls_String *n, expdesc *var, int base)
-{
-	int v = searchvar(pd, n);
-	if (v >= 0)
-	{
-		init_exp(var, VLOCAL, v);
-		return VLOCAL;
-	}
-	else
-	{
-		//TODO not local
-		return 0;
-	}
-}
-
 static void singlevar(ls_ParserData* pd, expdesc* v)
 {
-	//currently only local
-	//pd->pf->f->locvars;
-	ls_String* name = check_get_identifier();//TODO check_name
-	singlevaraux(pd, name, v, 1);//only search locals
+	ls_String* var = check_get_identifier();
+	lsYL_search(pd, var);
 }
 
 static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)

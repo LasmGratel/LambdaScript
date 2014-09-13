@@ -9,7 +9,9 @@
 
 //Macros: values
 
-#define ls_NULL ((void*)0)
+#define ls_NULL  ((void*)0)
+#define ls_TRUE  (1)
+#define ls_FALSE (0)
 
 #define MAX_MEMSIZE	((ls_MemSize)(PTRDIFF_MAX-2))
 

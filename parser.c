@@ -10,25 +10,6 @@
 #include "string.h"
 #include "func.h"
 
-#define MAXVARS		200
-
-typedef struct ls_Assignment
-{
-	struct ls_Assignment *prev;
-	expdesc v;
-} ls_Assignment;
-
-typedef struct ls_Block
-{
-	struct ls_Block* previous;  /* chain */
-	short firstlabel;  /* index of first label in this block */
-	short firstgoto;  /* index of first pending goto in this block */
-	ls_byte nactvar;  /* # active locals outside the block */
-	ls_byte upval;  /* true if some variable in the block is an upvalue */
-	ls_byte isloop;  /* true if `block' is a loop */
-} ls_Block;
-
-
 static void init_exp(expdesc *e, ls_Expkind k, int i)
 {
 	//e->f = e->t = NO_JUMP;//TODO patch list
@@ -51,14 +32,16 @@ static void stat(ls_ParserData* pd)
 		lsX_next(ls);
 		if (ls->current.t == TK_IDENTIFIER)
 		{
-			newlocalvar(pd, ls->current.d.objs);
+			//newlocalvar(pd, ls->current.d.objs);
+			lsYL_newlocal(pd, check_get_identifier());
 		}
 		lsX_next(ls);
 		if (ls->current.t == ';')
 		{
 			lsX_next(ls);
 		}
-		adjustlocalvars(pd, 1);//add 1 new local
+		//adjustlocalvars(pd, 1);//add 1 new local
+		lsYL_localvisiblestart(pd, 1);
 		break;
 	default:
 		exprstat(pd);
@@ -73,85 +56,93 @@ static void statlist(ls_ParserData* pd)
 	}
 }
 
-static void open_func(ls_ParserData* pd, ls_ParseFunc* pf, ls_Block* bl)
+static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf)
 {
+	//Function chain
 	pf->prev = pd->pf;
 	pd->pf = pf;
-
+	
+	//Setup function
+	pf->bl = ls_NULL;
+	pf->f = lsF_newproto(pd->L);
 	pf->pc = 0;
-	pf->firstlocal = 0;
-	pf->nlocvars = 0;
-	pf->nactvar = 0;
-	ls_Proto* f = pf->f;
-	//f->source = ls->source;
-	//f->maxstacksize = 2;  /* registers 0/1 are always valid */
-	//anchor table
-	//enter block
+
+	//Other tasks
+	//Locals
+	pf->locals.n = 0;
+	pf->locals.nact = 0;
+	pf->locals.offset = pd->actvarmap.n;
 }
 
-static void close_func(ls_ParserData* pd)
+static void leavefunc(ls_ParserData* pd)
 {
-	//ls_LexState* ls;
-	//final ret
-	//leave block
+	//Other tasks
+	//Locals
+	//Don't need to change actvarmap in ParserData, which are already
+	//released in leaveblock (by lsYL_localvisibleend)
+}
+
+//Setup everything when entering a block
+//Only need an uninitialized stack object ls_Block
+static void enterblock(ls_ParserData* pd, ls_Block* bl, ls_byte isloop)
+{
 	ls_ParseFunc* pf = pd->pf;
-	pd->pf = pf->prev;
-}
 
-static void enterblock(ls_ParseFunc* pf, ls_Block* bl, ls_byte isloop)
-{
-	bl->isloop = isloop;
-	bl->nactvar = pf->nactvar;
-	bl->firstlabel = pf->pd->label.n;
-	bl->firstgoto = pf->pd->gt.n;
-	bl->upval = 0;
+	//Block chain
 	bl->previous = pf->bl;
 	pf->bl = bl;
-	ls_assert(pf->freereg == pf->nactvar);
+
+	//Other tasks
+	//Locals
+	bl->nactvar = pf->locals.nact;
 }
 
-static void leaveblock(ls_ParseFunc* pf) {
+static void leaveblock(ls_ParserData* pd)
+{
+	ls_ParseFunc* pf = pd->pf;
 	ls_Block* bl = pf->bl;
-	if (bl->previous && bl->upval) {
-		/* create a 'jump to here' to close upvalues */
-		//int j = luaK_jump(pf);
-		//luaK_patchclose(pf, j, bl->nactvar);
-		//luaK_patchtohere(pf, j);
-	}
-	//if (bl->isloop)
-	//	breaklabel(pf);  /* close pending breaks */
+
+	//Block chain
 	pf->bl = bl->previous;
-	//removevars(pf, bl->nactvar);
-	ls_assert(bl->nactvar == pf->nactvar);
-	pf->freereg = pf->nactvar;  /* free registers */
-	pf->pd->label.n = bl->firstlabel;  /* remove local labels */
-	//if (bl->previous)  /* inner block? */
-	//	movegotosout(pf, bl);  /* update pending gotos to outer block */
-	//else if (bl->firstgoto < pf->pd->gt.n)  /* pending gotos in outer block? */
-	//	undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
+
+	//Other tasks
+	//Locals
+	lsYL_localvisibleend(pd, pf->locals.nact - bl->nactvar); //Remove some locals
+	//TODO parse close local
+}
+
+static void mainfunc(ls_ParserData* pd)
+{
+	//Stack objects
+	ls_ParseFunc pf;
+	ls_Block bl;
+
+	//Parse function and main block
+	enterfunc(pd, &pf);
+	enterblock(pd, &bl, ls_FALSE);
+
+	statlist(pd);
+
+	leaveblock(pd);
+	leavefunc(pd);
 }
 
 void lsY_rawparse(ls_State* L, ls_LexState* zin)
 {
+	//Setup parser data
 	ls_ParserData pd;
-	ls_ParseFunc pf;
-
-	pd.actvar.arr = ls_NULL;
-	pd.actvar.n = pd.actvar.size = 0;
-	pd.pf = &pf;
+	pd.actvarmap.arr = ls_NULL;
+	pd.actvarmap.n = pd.actvarmap.size = 0;
+	pd.pf = ls_NULL;
 	pd.L = L;
 	pd.ls = zin;
 
-	ls_Block bl;
-	pf.f = lsF_newproto(L);
-	pf.ls = zin;
-
-	//main func
-	open_func(&pd, &pf, &bl);
-	//TODO setup var arg
-	//TODO setup global (as upval)
+	//Start input
 	lsX_next(zin);
-	statlist(&pd);
+
+	//Parse mainfunc
+	mainfunc(&pd);
+
+	//Stream should end
 	check_current_token(TK_EOS);
-	close_func(&pd);
 }
