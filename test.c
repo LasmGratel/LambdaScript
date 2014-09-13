@@ -7,10 +7,15 @@
 #include "gc.h"
 #include "stream.h"
 #include "lex.h"
+#include "table.h"
+#include "parser.h"
+#include "func.h"
 
 #define set_string_stream(s, str) { \
 LoadS ss = { str, strlen(str) }; \
 lsZ_creates((s), "<string>", getS, &ss); }
+
+//#define printf
 
 static void *l_alloc(void *ud, void *ptr, ls_MemSize osize, ls_MemSize nsize) {
 	(void)ud;  (void)osize;  /* not used */
@@ -39,7 +44,7 @@ typedef struct LoadS
 
 static const char* getS(void* ud, ls_MemSize* sz)
 {
-	LoadS* s = CAST(LoadS*, ud);
+	LoadS* s = cast(LoadS*, ud);
 	if (s->len)
 	{
 		*sz = s->len;
@@ -56,22 +61,28 @@ int main()
 	/* Memory allocation test */ {
 		void* p;
 
-		p = lsM_newblock(L, 0, 200);
-		p = lsM_resizeblock(L, 0, p, 200, 10);
-		lsM_freeblock(L, 0, p, 10);
+		p = lsM_newblock(L, 200);
+		p = lsM_resizeblock(L, p, 200, 10);
+		lsM_freeblock(L, p, 10);
 
-		p = lsM_newobj(L, 0, int[100]);
-		lsM_freeobj(L, 0, p, int[100]);
+		p = lsM_newobj(L, int[100]);
+		lsM_freeobj(L, p, int[100]);
 
-		ArrayInfo info = {0, INT_MAX, "test"};
-		p = lsM_newarray(L, &info, int, 10);
-		p = lsM_resizearray(L, &info, p, int, 100);
-		lsM_freearray(L, &info, p);
+		int* vec;
+		int n = 0, cap = 10;
+		int max = MAX_MEMSIZE;
+		vec = lsM_newvector(L, cap, int);
+		for (int i = 0; i < 20; ++i)
+		{
+			lsM_growvector(L, vec, n, cap, int, 30, "test");
+			vec[n++] = n;
+		}
+		lsM_freevector(L, vec, cap);
 
 		/* String object test */
 		ls_Object* obj;
-		obj = CAST(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
-		printf(lsS_tocstr(&obj->s));
+		obj = cast(ls_Object*, lsS_newstrf(L, "Hello, %s!\n", "Lambda"));
+		printf(getstr(&obj->s));
 		//ls_Object can not be freed
 	}
 
@@ -93,11 +104,14 @@ int main()
 		lsZ_appendbuf(&buf, 'K');
 		lsZ_appendbuf(&buf, '\n');
 		lsZ_appendbuf(&buf, 0);
+		void* pos = buf.buf + buf.sz;
+		lsZ_rawappendbuf_t_(&buf, int, 1000);
+		assert(*(int*)pos == 1000);
 		printf(buf.buf);
-		lsZ_closebuf(&buf);
+		lsZ_freebuf(&buf);
 	}
 
-	/* Lexical analyzer */ {
+	/* Lexical analyzer */ for (int i = 0; i < 1; ++i){
 		const char* name[] = {
 			"EOS",
 			"Symbol",
@@ -110,43 +124,33 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		set_string_stream(&stream, 
-			"\a = \"\\\"sac\\tewf\\nq\\\n\rewfwe\";\n"
-			"int main()\n"
-			"{\n"
-			"	ls_State* L = ls_newstate(l_alloc, NULL);\n"
-			"\n"
-			"	/* Memory allocation test */ {\n"
-			"		void* p;\n"
-			"\n"
-			"		p = lsM_newblock(L, 0, 200);\n"
-			"		p = lsM_resizeblock(L, 0, p, 200, 10);\n"
-			"		lsM_freeblock(L, 0, p, 10);\n"
+		set_string_stream(&stream,
+			"var a; var b; a=b;"
 			);
 		lsX_initlex(L, &lex, &stream);
+		lsY_rawparse(L, &lex);
+		/*
 		do
 		{
 			lsX_next(&lex);
-			printf("%s: ", name[lex.current.t]);
+			//printf("%s: ", name[lex.current.t]);
 			switch (lex.current.t)
 			{
-			case TOKEN_SYMBOL:
-				printf("%c\n", lex.current.d.sym);
-				break;
-			case TOKEN_NUMBER:
+			case TK_NUMBER:
 				printf("%f\n", lex.current.d.n);
 				break;
-			case TOKEN_COMMENT_S:
-			case TOKEN_COMMENT_M:
-			case TOKEN_IDENTIFIER:
-			case TOKEN_STRING:
-				printf("%s\n", lex.current.d.str);
+			case TK_COMMENT_S:
+			case TK_COMMENT_M:
+			case TK_IDENTIFIER:
+			case TK_STRING:
+				printf("%s\n", getstr(lex.current.d.objs));
 				break;
 			default:
-				printf("\n");
+				if (lex.current.t < TK_NOT_USED) printf("%c\n", cast_byte(lex.current.t));
 				break;
 			}
-		} while (lex.current.t != TOKEN_EOS);
+		} while (lex.current.t != TK_EOS);
+		*/
 		lsX_freelex(&lex);
 		lsZ_closes(&stream);
 	}

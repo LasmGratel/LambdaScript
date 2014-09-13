@@ -4,7 +4,7 @@
 //use int to allow EOS(-1)
 #define ls_Char int
 
-#define ls_EOS (CAST(ls_Char, -1))
+#define ls_EOS (cast(ls_Char, -1))
 
 typedef struct ls_Stream
 {
@@ -33,7 +33,7 @@ typedef struct ls_MemBuff
 //Peek a char and don't change pos
 #define lsZ_peekb(s) ((s)->peek) 
 //Step pos
-#define lsZ_nextb(s) CAST(void, ( (s)->pos < (s)->bl - 1 ? \
+#define lsZ_nextb(s) cast(void, ( (s)->pos < (s)->bl - 1 ? \
 	(s)->peek = (s)->buf[++((s)->pos)] \
 	: lsZ_fills(s)))
 //Peek and next
@@ -49,13 +49,20 @@ LSI_EXTERN void lsZ_fills(ls_Stream* s);
 
 /* Buffer manipulate */
 //Buffer block information
-#define MEMBUFFER_BLOCK_STRATEGY (LSM_ALLOC_VARIABLE | LSM_ALLOC_MEDIUM | LSM_ALLOC_TEMPORARY)
+//#define MEMBUFFER_BLOCK_STRATEGY (LSM_ALLOC_VARIABLE | LSM_ALLOC_MEDIUM | LSM_ALLOC_TEMPORARY)
 //Initialize a new buffer
-#define lsZ_newbuf(_L, b) ((void)((b)->cap = (b)->sz = 0, (b)->buf = ls_NULL, (b)->L = _L))
-#define lsZ_clearbuf(b) ((void)((b)->sz = 0))
-#define lsZ_appendbuf(b, c) ( (b)->cap > (b)->sz ? (void)((b)->buf[(b)->sz++] = c) : \
-	(void)((b)->buf = lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_STRATEGY, (b)->buf, (b)->cap, (b)->cap = ((b)->cap * 2 + 16)), (b)->buf[(b)->sz++] = c) \
+#define lsZ_newbuf(_L, b) ((b)->cap = (b)->sz = 0, (b)->buf = ls_NULL, (b)->L = _L)
+#define lsZ_clearbuf(b) ((b)->sz = 0)
+#define lsZ_ensurebuf(b, n) ((b)->cap < (b)->sz + (n) ?  \
+	((b)->buf = lsM_resizeblock((b)->L, (b)->buf, (b)->cap, (b)->sz + (n))), (b)->cap = (b)->sz + (n) : 0)
+#define lsZ_appendbuf(b, c) ( (b)->cap > (b)->sz ? ((b)->buf[(b)->sz++] = (c)) : \
+	((b)->buf = lsM_doubleblock((b)->L, (b)->buf, &(b)->cap), (b)->buf[(b)->sz++] = (c)) \
 	)
-#define lsZ_closebuf(b) ((void) lsM_resizeblock((b)->L, MEMBUFFER_BLOCK_STRATEGY, (b)->buf, (b)->cap, 0), (b)->cap = (b)->sz = 0, (b)->buf = ls_NULL)
+#define lsZ_rawappendbuf_t_(b, t, v) (*cast(t*, (b)->buf + (b)->sz) = (t)(v), (b)->sz += sizeof(t))
+#define lsZ_appendbuf_t(b, t, v) ( (b)->cap > (b)->sz ? lsZ_rawappendbuf_t_(b, t, v) : \
+	((b)->buf = lsM_doubleblock((b)->L, (b)->buf, &(b)->cap), lsZ_rawappendbuf_t_(b, t, v)))
+//#define lsZ_appendbuf_t(b, t, v) ((void)(lsZ_ensurebuf(b, (b)->sz + sizeof(t)), *(t*)((b)->buf+(b)->sz) = (t)(v), (b)->sz+=sizeof(t)))
+#define lsZ_freebuf(b) ( lsM_resizeblock((b)->L, (b)->buf, (b)->cap, 0), (b)->cap = (b)->sz = 0, (b)->buf = ls_NULL)
 #define lsZ_bufsize(b) ((b)->sz)
+
 #endif

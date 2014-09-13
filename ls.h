@@ -15,7 +15,7 @@
 #define ls_Number double
 
 /* memory allocate type */
-
+/*
 #define LSM_ALLOC_UNKNOWN   0x00
 
 #define LSM_ALLOC_STRATEGY  0x0f
@@ -30,7 +30,7 @@
 #define LSM_ALLOC_USAGE     0xf0
 #define LSM_ALLOC_USAGE_N   0
 #define lsM_allocusage(n) ((n & LSM_ALLOC_USAGE) << 2)
-
+*/
 /* error number */
 #define LS_ERRRUN   1
 #define LS_ERRMEM   2

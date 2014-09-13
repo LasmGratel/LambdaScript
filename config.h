@@ -8,4 +8,8 @@
 #define LS_USE_APICHECK
 #define LS_USE_ALIGN_T
 
+#define LS_INT32 int
+#define LS_INT16 short
+#define LS_UINT32 unsigned int
+#define LS_UINT16 unsigned short
 #endif

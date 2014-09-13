@@ -7,6 +7,7 @@
 #include "stream.h"
 #include "lex.h"
 #include "ctype.h"
+#include "string.h"
 
 //print as string to enable debugging
 #define PRINT_BUFFER_AS_STRING
@@ -49,6 +50,24 @@
 #define check(cond, ...) if (!(cond)) { lex_error(__VA_ARGS__); return; }
 //write '\0' to the end to make it a c-string
 #define buf_finished() lsZ_appendbuf(&ls->buf, 0)
+
+//create a ls_String obj
+#define create_string() {ls->current.d.objs = lsS_newstr_n(ls->buf.L, ls->buf.buf, ls->buf.sz);}
+
+//prepare for the strings
+static const char *const lsX_tokens[] = {
+	"var"
+};
+
+void lsX_init(ls_State* L)
+{
+	for (int i = 0; i < NUM_RESERVED; i++)
+	{
+		ls_String *ts = lsS_newstr(L, lsX_tokens[i]);
+		lsS_fix(ts);  /* reserved words are never collected */
+		ts->s.extra = cast_byte(i + 1);  /* reserved word */
+	}
+}
 
 static void multiline_comment(ls_LexState* ls)
 {
@@ -142,6 +161,8 @@ no_save:
 			break;
 		case '"':
 			set_as_buf();
+			create_string();
+			//TODO string not attacked
 			return;
 		case '\n':
 		case ls_EOS:
@@ -187,27 +208,26 @@ void lsX_next(ls_LexState* ls)
 #else
 				skip_until(c == '\n' || c == '\r');
 #endif
-				return_type(TOKEN_COMMENT_S);
+				return_type(TK_COMMENT_S);
 			}
 			case '*':
 				//multiline comment
 				skip();
 				multiline_comment(ls);
-				return_type(TOKEN_COMMENT_M);
+				return_type(TK_COMMENT_M);
 			default:
 				//'/'
-				ls->current.d.sym = '/';
-				return_type(TOKEN_SYMBOL);
+				return_type('/');
 			}
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
 			number(ls, c);
-			return_type(TOKEN_NUMBER);
+			return_type(TK_NUMBER);
 		case ls_EOS:
-			return_type(TOKEN_EOS);
+			return_type(TK_EOS);
 		case '"':
 			string(ls);
-			return_type(TOKEN_STRING);
+			return_type(TK_STRING);
 		default:
 			if (lislalpha(c))
 			{
@@ -215,12 +235,21 @@ void lsX_next(ls_LexState* ls)
 				append_buf();
 				append_buf_while(lislalnum(c) || c == '_');
 				set_as_buf();
-				return_type(TOKEN_IDENTIFIER);
+				create_string();
+				//TODO string not attached
+				//Lua attach this string on a separated list of function
+				//But for this reason a re-anchor procedure is needed to bring the 
+				//last token to the next function when exiting a function.
+				//So what about anchor it onto parser?
+				if (isreserved(ls->current.d.objs))
+				{
+					return_type(TK_NOT_USED + ls->current.d.objs->s.extra);
+				}
+				return_type(TK_IDENTIFIER);
 			}
 			else
 			{
-				ls->current.d.sym = c;
-				return_type(TOKEN_SYMBOL);
+				return_type(c);
 			}
 		}
 	}
