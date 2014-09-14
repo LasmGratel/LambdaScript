@@ -2,36 +2,43 @@
 #define LS_PARSER_H
 
 typedef enum {
-	VVOID,	/* no value */
-	VNIL,
-	VTRUE,
-	VFALSE,
-	VK,		/* info = index of constant in `k' */
-	VKNUM,	/* nval = numerical value */
-	VNONRELOC,	/* info = result register */
-	VLOCAL,	/* info = local register */
-	VUPVAL,       /* info = index of upvalue in 'upvalues' */
-	VINDEXED,	/* t = table register/upvalue; idx = index R/K */
-	VJMP,		/* info = instruction pc */
-	VRELOCABLE,	/* info = instruction pc */
-	VCALL,	/* info = instruction pc */
-	VVARARG	/* info = instruction pc */
+	EXP_LOCAL,
+	EXP_UPVAL,
+	EXP_CONST,
+
+	EXPR_INDEXED,
 } ls_Expkind;
 
-typedef struct expdesc {
+//Expressions whose value has been stored on stack, upvalue table or const table
+//Including already calculated expressions and locals, upvals
+typedef struct ls_StoredExpr
+{
 	ls_Expkind k;
-	union {
-		struct {  /* for indexed variables (VINDEXED) */
-			short idx;  /* index (R/K) */
-			ls_byte t;  /* table (register or upvalue) */
-			ls_byte vt;  /* whether 't' is register (VLOCAL) or upvalue (VUPVAL) */
-		} ind;
-		int info;  /* for generic use */
-		ls_Number nval;  /* for VKNUM */
+	ls_NLocal id;
+} ls_StoredExpr;
+
+//Table expression. tab and key must be stored
+typedef struct ls_IndexedExpr
+{
+	ls_Expkind k;
+	ls_StoredExpr tab;
+	ls_StoredExpr key;
+} ls_IndexedExpr;
+
+typedef struct ls_Expr {
+	union
+	{
+		ls_Expkind k;//Common header, used to get expression type
+		ls_StoredExpr s;
+		ls_IndexedExpr i;
 	} u;
 	//int t;  /* patch list of `exit when true' */
 	//int f;  /* patch list of `exit when false' */
-} expdesc;
+} ls_Expr;
+
+//Just used to store stack position
+//Is not directly used by parser
+typedef int ls_MultiAssignInfo;
 
 typedef struct ls_Vardesc
 {
@@ -128,7 +135,7 @@ typedef struct ls_ParseFunc
 typedef struct ls_Assignment
 {
 	struct ls_Assignment *prev;
-	expdesc v;
+	ls_Expr v;
 } ls_Assignment;
 
 LSI_EXTERN void lsY_rawparse(ls_State* L, ls_LexState* zin);

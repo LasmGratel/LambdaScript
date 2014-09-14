@@ -20,8 +20,6 @@ LSI_EXTERN ls_Proto* lsF_newproto(ls_State *L)
 	//f->sizecode = 0;
 	//f->lineinfo = NULL;
 	//f->sizelineinfo = 0;
-	//f->upvalues = NULL;
-	//f->sizeupvalues = 0;
 	//f->numparams = 0;
 	//f->is_vararg = 0;
 	//f->maxstacksize = 0;

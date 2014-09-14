@@ -10,14 +10,7 @@
 #include "string.h"
 #include "func.h"
 
-static void init_exp(expdesc *e, ls_Expkind k, int i)
-{
-	//e->f = e->t = NO_JUMP;//TODO patch list
-	e->k = k;
-	e->u.info = i;
-}
-
-static void expr(ls_ParserData* pd, expdesc* v);
+static void expr(ls_ParserData* pd, ls_Expr* v);
 static void statlist(ls_ParserData* pd);
 static void enterblock(ls_ParserData* pd, ls_Block* bl, ls_byte isloop);
 static void leaveblock(ls_ParserData* pd);

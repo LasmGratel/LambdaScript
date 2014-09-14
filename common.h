@@ -102,6 +102,7 @@ typedef struct ls_State ls_State;
 typedef struct ls_GlobalState ls_GlobalState;
 typedef union ls_Object ls_Object;
 typedef union ls_String ls_String;
+typedef struct ls_Proto ls_Proto;
 typedef struct ls_Stream ls_Stream;
 typedef struct ls_MemBuff ls_MemBuff;
 typedef struct ls_ParserData ls_ParserData;
