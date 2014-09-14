@@ -56,7 +56,7 @@
 
 //prepare for the strings
 static const char *const lsX_tokens[] = {
-	"var"
+	"var", "func"
 };
 
 void lsX_init(ls_State* L)

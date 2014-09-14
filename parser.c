@@ -18,10 +18,53 @@ static void init_exp(expdesc *e, ls_Expkind k, int i)
 }
 
 static void expr(ls_ParserData* pd, expdesc* v);
+static void statlist(ls_ParserData* pd);
+static void enterblock(ls_ParserData* pd, ls_Block* bl, ls_byte isloop);
+static void leaveblock(ls_ParserData* pd);
+static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf);
+static void leavefunc(ls_ParserData* pd);
 
 #include "parser_util.h"
 #include "parser_loc.h"
 #include "parser_expr.h"
+#include "parser_ctrl.h"
+
+static void funcbody(ls_ParserData* pd)
+{
+	//Stack objects
+	ls_ParseFunc pf;
+	ls_Block bl;
+
+	//Enter func to declare parameters
+	enterfunc(pd, &pf);
+
+	//Read parlist
+	check_and_next('(');
+	//Currently don't support parameters
+	check_and_next(')');
+
+	check_and_next('{');
+	//Now enter block
+	enterblock(pd, &bl, ls_FALSE);
+
+	statlist(pd);
+
+	leaveblock(pd);
+	check_and_next('}');
+	leavefunc(pd);
+
+	//Always end with ';'
+	check_and_next(';');
+}
+
+static void localfunc(ls_ParserData* pd)
+{
+	next_token();//skip 'func'
+	ls_String* name = check_get_identifier();
+	next_token();//skip name
+	//Just read the body
+	funcbody(pd);
+}
 
 static void stat(ls_ParserData* pd)
 {
@@ -43,6 +86,18 @@ static void stat(ls_ParserData* pd)
 		//adjustlocalvars(pd, 1);//add 1 new local
 		lsYL_localvisiblestart(pd, 1);
 		break;
+
+	case TK_FUNC:
+		//Function defination
+		//Currently treat all func as local
+		localfunc(pd);
+		break;
+
+	case '{':
+		//New block
+		block(pd);
+		break;
+
 	default:
 		exprstat(pd);
 	}
@@ -72,10 +127,17 @@ static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf)
 	pf->locals.n = 0;
 	pf->locals.nact = 0;
 	pf->locals.offset = pd->actvarmap.n;
+
+	//Upvals
+	pf->nupvals = 0;
 }
 
 static void leavefunc(ls_ParserData* pd)
 {
+	//Function chain
+	ls_ParseFunc* pf = pd->pf;
+	pd->pf = pf->prev;
+
 	//Other tasks
 	//Locals
 	//Don't need to change actvarmap in ParserData, which are already
@@ -136,6 +198,9 @@ void lsY_rawparse(ls_State* L, ls_LexState* zin)
 	pd.pf = ls_NULL;
 	pd.L = L;
 	pd.ls = zin;
+
+	pd.nameg = lsS_newstr(L, "_G");
+	//TODO not attached
 
 	//Start input
 	lsX_next(zin);

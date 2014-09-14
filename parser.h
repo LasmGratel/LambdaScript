@@ -1,14 +1,6 @@
 #ifndef LS_PARSER_H
 #define LS_PARSER_H
 
-//size types
-typedef ls_int32 ls_NParserG; //suitable for all following types
-typedef ls_int32 ls_NLocal; //locals
-typedef int ls_NInst; //instruments
-#define MAX_LOCAL_IN_PROTO  SHRT_MAX
-#define MAX_ACTIVE_LOCAL_IN_PARSER  (INT_MAX - 2)
-#define MAX_ACTIVE_LOCAL_IN_FUNC    200
-
 typedef enum {
 	VVOID,	/* no value */
 	VNIL,
@@ -69,6 +61,9 @@ typedef struct ls_ParserData
 	ls_ParseFunc* pf;
 	ls_LexState* ls;
 
+	//name of global (as an upval)
+	ls_String* nameg;
+
 	/* list of active local variables */
 	//map from function's i-th local to locals in Proto (which contains not only active)
 	struct
@@ -115,6 +110,7 @@ typedef struct ls_ParseFunc
 	} locals;
 
 	ls_NInst pc;  /* next position to code (equivalent to `ncode') */
+	ls_NLocal nupvals;
 
 	//(by acaly) this table is pushed on stack used to prevent objects to be collected by gc
 	//Table *h;  /* table to find (and reuse) elements in `k' */

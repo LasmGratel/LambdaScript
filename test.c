@@ -125,7 +125,7 @@ int main()
 		ls_Stream stream;
 		ls_LexState lex;
 		set_string_stream(&stream,
-			"var a; var b; a=b;"
+			"var a; func f(){a=a;};"
 			);
 		lsX_initlex(L, &lex, &stream);
 		lsY_rawparse(L, &lex);

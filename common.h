@@ -10,6 +10,7 @@
 //Macros: values
 
 #define ls_NULL  ((void*)0)
+#define ls_Bool int
 #define ls_TRUE  (1)
 #define ls_FALSE (0)
 
@@ -113,5 +114,17 @@ typedef LS_INT16 ls_int16;
 typedef LS_INT32 ls_int32;
 
 typedef ls_uint32 Instruction;
+
+
+//Used by parser
+//size types
+typedef ls_int32 ls_NParserG; //suitable for all following types
+typedef ls_int32 ls_NLocal; //locals
+typedef int ls_NInst; //instruments
+#define MAX_LOCAL_IN_PROTO  SHRT_MAX
+#define MAX_UPVAL_IN_PROTO	UCHAR_MAX
+#define MAX_ACTIVE_LOCAL_IN_PARSER  (INT_MAX - 2)
+#define MAX_ACTIVE_LOCAL_IN_FUNC    200
+
 
 #endif

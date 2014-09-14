@@ -9,7 +9,8 @@ enum RESERVED {
 
 	/* first reserved words */
 	//Let's have an var for test
-	TK_VAR, RESERED_END,
+	TK_VAR, TK_FUNC,
+	RESERED_END,
 
 	/* other types */
 	TK_EOS,

@@ -19,25 +19,33 @@ typedef union ls_String
 ** Description of a local variable for function prototypes
 ** (used for debug information)
 */
-typedef struct ls_LocVar {
+typedef struct ls_LocVar
+{
 	ls_String *varname;
-	int startpc;  /* first point where variable is active */
-	int endpc;    /* first point where variable is dead */
+	ls_NInst startpc;  /* first point where variable is active */
+	ls_NInst endpc;    /* first point where variable is dead */
 } ls_LocVar;
+
+typedef struct ls_Upvalue
+{
+	ls_String *name;  /* upvalue name (for debug information) */
+	ls_Bool inlocal;  /* true if it's local in outer func, false if it's upval */
+	ls_NLocal idx;  /* index of upvalue (in stack or in outer function's list) */
+} ls_Upvalue;
 
 typedef struct ls_Proto
 {
 	ls_CommonHeader;
-	ls_LocVar *locvars;  /* information about local variables (debug information) */
-	int sizelocvars;
+	ls_LocVar* locvars;  /* information about local variables (debug information) */
+	ls_NLocal sizelocvars;
+	ls_Upvalue* upvalues;  /* upvalue information */
+	ls_NLocal sizeupvalues;  /* size of 'upvalues' */
 	//TValue *k;  /* constants used by the function */
 	//Instruction *code;
 	//struct ls_Proto **p;  /* functions defined inside the function */
 	//int *lineinfo;  /* map from opcodes to source lines (debug information) */
-	//Upvaldesc *upvalues;  /* upvalue information */
 	//union Closure *cache;  /* last created closure with this prototype */
 	//TString  *source;  /* used for debug information */
-	//int sizeupvalues;  /* size of 'upvalues' */
 	//int sizek;  /* size of `k' */
 	//int sizecode;
 	//int sizelineinfo;

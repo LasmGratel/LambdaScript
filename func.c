@@ -7,6 +7,10 @@
 LSI_EXTERN ls_Proto* lsF_newproto(ls_State *L)
 {
 	ls_Proto* f = &lsC_newobj(L, LS_OBJ_PROTO, sizeof(ls_Proto), ls_NULL)->p;
+	f->locvars = ls_NULL;
+	f->sizelocvars = 0;
+	f->upvalues = ls_NULL;
+	f->sizeupvalues = 0;
 	//f->k = NULL;
 	//f->sizek = 0;
 	//f->p = NULL;
@@ -21,8 +25,6 @@ LSI_EXTERN ls_Proto* lsF_newproto(ls_State *L)
 	//f->numparams = 0;
 	//f->is_vararg = 0;
 	//f->maxstacksize = 0;
-	f->locvars = NULL;
-	f->sizelocvars = 0;
 	//f->linedefined = 0;
 	//f->lastlinedefined = 0;
 	//f->source = NULL;

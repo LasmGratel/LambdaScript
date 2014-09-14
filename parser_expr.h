@@ -1,57 +1,26 @@
 //Only used in parser.c
 
-#define UNARY_PRIORITY	8  /* priority for unary operators */
-
-static UnOpr getunopr(int op)
-{
-	switch (op) {
-	case '!': return OPR_NOT;
-	case '-': return OPR_MINUS;
-	case '#': return OPR_LEN;
-	default: return OPR_NOUNOPR;
-	}
-}
-
-static BinOpr getbinopr(int op)
-{
-	switch (op)
-	{
-		case '+': return OPR_ADD;
-		case '-': return OPR_SUB;
-		case '*': return OPR_MUL;
-		case '/': return OPR_DIV;
-		case '%': return OPR_MOD;
-		case '^': return OPR_POW;
-		//case TK_CONCAT: return OPR_CONCAT;
-		//case TK_NE: return OPR_NE;
-		//case TK_EQ: return OPR_EQ;
-		case '<': return OPR_LT;
-		//case TK_LE: return OPR_LE;
-		case '>': return OPR_GT;
-		//case TK_GE: return OPR_GE;
-		//case TK_AND: return OPR_AND;
-		//case TK_OR: return OPR_OR;
-		default: return OPR_NOBINOPR;
-	}
-}
-
-static const struct
-{
-	ls_byte left;  /* left priority for each binary operator */
-	ls_byte right; /* right priority */
-} priority[] = 
-{  /* ORDER OPR */
-	{ 6, 6 }, { 6, 6 }, { 7, 7 }, { 7, 7 }, { 7, 7 },  /* `+' `-' `*' `/' `%' */
-	{ 10, 9 }, { 5, 4 },                 /* ^, .. (right associative) */
-	{ 3, 3 }, { 3, 3 }, { 3, 3 },          /* ==, <, <= */
-	{ 3, 3 }, { 3, 3 }, { 3, 3 },          /* ~=, >, >= */
-	{ 2, 2 }, { 1, 1 }                   /* and, or */
-};
-
 static void singlevar(ls_ParserData* pd, expdesc* v)
 {
 	ls_String* var = check_get_identifier();
-	lsYL_search(pd, var);
+
+	//Just let lsYL part to do the search (locals and upvals)
+	ls_Bool islocal = ls_FALSE;
+	int idx = lsYL_search(pd, var, &islocal);
+	if (idx < 0)
+	{
+		//Not local or upval, so go back to global
+		//Get global table
+		idx = lsYL_search(pd, pd->nameg, &islocal);
+
+		//TODO store name
+
+		//TODO make v as index
+	}
+	else
+	{
+		//TODO make v as local/up (see isup)
+	}
 }
 
 static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
