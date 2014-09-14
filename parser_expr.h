@@ -39,6 +39,9 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 			ls_Expr right;
 			expr(pd, &right);
 
+			//Must be stored
+			//That is, with a.a=b.b, we should calc b.b before calling lsK_assign
+			lsK_storeexpr(pd, &right);
 			lsK_assign(pd, &lh->v, &right);
 
 			//we need to skip to the end of the statement
@@ -62,6 +65,9 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 			do
 			{
 				expr(pd, &right);
+				//Must be stored
+				//That is, with a.a,b=c.c,1, we should calc b.b before evaluating 1
+				lsK_storeexpr(pd, &right);
 				lsK_pushmultiassign(pd, &mai, &right);
 			} while (next_when(',')); //Stop when it's no ','
 			check_and_next(';');//So it should be ';'
@@ -166,4 +172,5 @@ static void exprstat(ls_ParserData* pd)
 	{
 		not_supported_yet();
 	}
+	//TODO balance stack
 }

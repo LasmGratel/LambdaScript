@@ -3,7 +3,6 @@
 #include "mem.h"
 #include "stream.h"
 #include "lex.h"
-#include "table.h"
 #include "object.h"
 #include "parser.h"
 #include "code.h"
@@ -114,6 +113,7 @@ static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf)
 	pf->bl = ls_NULL;
 	pf->f = lsF_newproto(pd->L);
 	pf->pc = 0;
+	pf->freereg = 0;
 
 	//Other tasks
 	//Locals
@@ -123,6 +123,10 @@ static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf)
 
 	//Upvals
 	pf->nupvals = 0;
+
+	//Consts
+	pf->nk = 0;
+
 }
 
 static void leavefunc(ls_ParserData* pd)
@@ -132,9 +136,18 @@ static void leavefunc(ls_ParserData* pd)
 	pd->pf = pf->prev;
 
 	//Other tasks
-	//Locals
-	//Don't need to change actvarmap in ParserData, which are already
-	//released in leaveblock (by lsYL_localvisibleend)
+
+	//Resize vectors
+	ls_Proto* f = pf->f;
+	ls_State* L = pd->L;
+	lsM_reallocvector(L, f->code, f->sizecode, pf->pc, Instruction);
+	f->sizecode = pf->pc;
+	lsM_reallocvector(L, f->k, f->sizek, pf->nk, ls_Value);
+	f->sizek = pf->nk;
+	lsM_reallocvector(L, f->locvars, f->sizelocvars, pf->locals.n, ls_LocVar);
+	f->sizelocvars = pf->locals.n;
+	lsM_reallocvector(L, f->upvalues, f->sizeupvalues, pf->nupvals, ls_Upvalue);
+	f->sizeupvalues = pf->nupvals;
 }
 
 //Setup everything when entering a block
@@ -166,7 +179,7 @@ static void leaveblock(ls_ParserData* pd)
 	//TODO parse close local
 }
 
-static void mainfunc(ls_ParserData* pd)
+static ls_Proto* mainfunc(ls_ParserData* pd)
 {
 	//Stack objects
 	ls_ParseFunc pf;
@@ -183,7 +196,13 @@ static void mainfunc(ls_ParserData* pd)
 	statlist(pd);
 
 	leaveblock(pd);
+
+	//Currently return the result as ls_Proto*
+	//TODO change this to push it onto stack
+	ls_Proto* ret = pd->pf->f;
+
 	leavefunc(pd);
+	return ret;
 }
 
 void lsY_rawparse(ls_State* L, ls_LexState* zin)
@@ -201,9 +220,10 @@ void lsY_rawparse(ls_State* L, ls_LexState* zin)
 
 	//Start input
 	lsX_next(zin);
-
 	//Parse mainfunc
-	mainfunc(&pd);
+	ls_Proto* ret = mainfunc(&pd);
+	
+	lsK_reviewcode(ret);
 
 	//Stream should end
 	check_current_token(TK_EOS);

@@ -21,4 +21,8 @@ LSI_EXTERN void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* inf
 //i starts from 0
 LSI_EXTERN void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int i, ls_Expr* expr);
 
+LSI_EXTERN void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v);
+
+LSI_EXTERN void lsK_reviewcode(ls_Proto* p);
+
 #endif

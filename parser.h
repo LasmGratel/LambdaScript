@@ -6,7 +6,7 @@ typedef enum {
 	EXP_UPVAL,
 	EXP_CONST,
 
-	EXPR_INDEXED,
+	EXP_INDEXED,
 } ls_Expkind;
 
 //Expressions whose value has been stored on stack, upvalue table or const table
@@ -119,17 +119,18 @@ typedef struct ls_ParseFunc
 	ls_NInst pc;  /* next position to code (equivalent to `ncode') */
 	ls_NLocal nupvals;
 
+	int nk;  /* number of elements in `k' */
+
 	//(by acaly) this table is pushed on stack used to prevent objects to be collected by gc
-	//Table *h;  /* table to find (and reuse) elements in `k' */
+	//ls_Table *h;  /* table to find (and reuse) elements in `k' */
 	//int lasttarget;   /* 'label' of last 'jump label' */
 	//int jpc;  /* list of pending jumps to `pc' */
-	//int nk;  /* number of elements in `k' */
 	//int np;  /* number of elements in `p' */
 	//int firstlocal;  /* index of first local var (in Dyndata array) */
 	//short nlocvars;  /* number of elements in 'f->locvars' */
 	//ls_byte nactvar;  /* number of active local variables */
 	//ls_byte nups;  /* number of upvalues */
-	//ls_byte freereg;  /* first free register */
+	ls_byte freereg;  /* first free register */
 } ls_ParseFunc;
 
 typedef struct ls_Assignment

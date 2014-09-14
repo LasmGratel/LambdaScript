@@ -28,7 +28,10 @@ Stream
 
 todos
 -----
-* Make a new buffer larger
+* Make code clean.
+* Move review part into a new submodule.
+* Make a new buffer larger.
+* Make a real hash table.
 * Use a simple test system for test.c.
 * Do gc in memory allocation functions.
 * Finish `ls_close'.

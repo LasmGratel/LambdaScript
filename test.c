@@ -124,9 +124,9 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		set_string_stream(&stream,
-			"var b; a,b=b,c;"
-			);
+		const char* code = "var a; {var g;g=a;a.b=g.h;}";
+		set_string_stream(&stream, code);
+		printf("Parsing code: \n    %s\n", code);
 		lsX_initlex(L, &lex, &stream);
 		lsY_rawparse(L, &lex);
 		/*
