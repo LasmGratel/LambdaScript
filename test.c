@@ -125,7 +125,7 @@ int main()
 		ls_Stream stream;
 		ls_LexState lex;
 		set_string_stream(&stream,
-			"var a; var b; a.n=b;"
+			"var b; a,b=b,c;"
 			);
 		lsX_initlex(L, &lex, &stream);
 		lsY_rawparse(L, &lex);

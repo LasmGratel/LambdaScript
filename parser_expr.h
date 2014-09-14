@@ -1,5 +1,8 @@
 //Only used in parser.c
 
+//Used in assignment
+static void suffixedexp(ls_ParserData* pd, ls_Expr* v);
+
 static void singlevar(ls_ParserData* pd, ls_Expr* v)
 {
 	ls_String* var = check_get_identifier();
@@ -51,12 +54,39 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 		}
 		else
 		{
-			not_supported_yet();
+			ls_Expr right;
+			ls_MultiAssignInfo mai;
+			lsK_prepmultiassign(pd, &mai);
+
+			//Read to the end, push all values
+			do
+			{
+				expr(pd, &right);
+				lsK_pushmultiassign(pd, &mai, &right);
+			} while (next_when(',')); //Stop when it's no ','
+			check_and_next(';');//So it should be ';'
+
+			//Adjust result to nvars
+			lsK_adjustmultiassign(pd, &mai, nvars);
+
+			//Do the assignments
+			do
+			{
+				lsK_getmultiassign(pd, &mai, --nvars, &right);
+				lsK_assign(pd, &lh->v, &right);
+				lh = lh->prev;
+			} while (lh);
 		}
 	}
 	else
 	{
-		not_supported_yet();
+		next_token();//skip','
+
+		ls_Assignment lh2;
+		lh2.prev = lh;
+		suffixedexp(pd, &lh2.v);
+		//TODO check conflict
+		assignment(pd, &lh2, nvars + 1);
 	}
 }
 
@@ -127,7 +157,7 @@ static void exprstat(ls_ParserData* pd)
 	//only assignment now
 	ls_Assignment v;
 	suffixedexp(pd, &v.v);
-	if (pd->ls->current.t == '=')
+	if (pd->ls->current.t == '=' || pd->ls->current.t == ',')
 	{
 		v.prev = ls_NULL;
 		assignment(pd, &v, 1);

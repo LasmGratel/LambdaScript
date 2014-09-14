@@ -172,10 +172,14 @@ static void mainfunc(ls_ParserData* pd)
 	ls_ParseFunc pf;
 	ls_Block bl;
 
-	//Parse function and main block
+	//Init function and main block
 	enterfunc(pd, &pf);
 	enterblock(pd, &bl, ls_FALSE);
 
+	//Add global env
+	newupvalue(pd, &pf, pd->nameg, ls_TRUE, 0);
+
+	//Start parsing
 	statlist(pd);
 
 	leaveblock(pd);

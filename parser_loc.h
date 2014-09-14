@@ -107,14 +107,17 @@ static int searchvar(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* varname, ls
 	}
 
 	//Find in enclosing function
-	ls_Bool enislocal = ls_FALSE;
-	idx = searchvar(pd, pf->prev, varname, &enislocal);
-	if (idx >= 0)
+	if (pf->prev)
 	{
-		//Found in enclosing function. Need to add a new upval here in this function.
-		idx = newupvalue(pd, pf, varname, enislocal, idx);
-		//Return as upval
-		return idx;
+		ls_Bool enislocal = ls_FALSE;
+		idx = searchvar(pd, pf->prev, varname, &enislocal);
+		if (idx >= 0)
+		{
+			//Found in enclosing function. Need to add a new upval here in this function.
+			idx = newupvalue(pd, pf, varname, enislocal, idx);
+			//Return as upval
+			return idx;
+		}
 	}
 
 	//Really can't find

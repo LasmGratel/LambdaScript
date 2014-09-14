@@ -2,7 +2,6 @@
 #define LS_CODE_H
 
 /* Expression and assignment basic */
-
 //Make a string const into expr.
 LSI_EXTERN void lsK_makestrk(ls_ParserData* pd, ls_String* str, ls_Expr* expr);
 //Make a StoredExpr. `k` can only be `EXP_LOCAL`, `EXP_UPVAL`, or `EXP_CONST`.
@@ -19,6 +18,7 @@ LSI_EXTERN void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info,
 //Adjust the number of value needed for multi-assignent. Called after pushing all values.
 LSI_EXTERN void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n);
 //Get the i-th pushed value in a multi-assignment. Return a StoredExpr and can be passed to lsK_assign.
+//i starts from 0
 LSI_EXTERN void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int i, ls_Expr* expr);
 
 #endif
