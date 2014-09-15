@@ -124,7 +124,7 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		const char* code = "var a; var b; a.field=b.b;b.g=g;";
+		const char* code = "var a; var b;g,h=a,b;";
 		//char code[1000];
 		//gets_s(code, sizeof(code));
 		set_string_stream(&stream, code);

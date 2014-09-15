@@ -1,10 +1,10 @@
 #ifndef LS_PARSER_H
 #define LS_PARSER_H
 
-typedef enum {
-	/* No data */
-	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
-	EXP_UNAVAILABLE,
+typedef enum
+{
+	//nil(0), true(1), false(2)
+	EXP_NTF,
 
 	/* Stored */
 	//Local variable
@@ -19,7 +19,19 @@ typedef enum {
 	/* Indexed */
 	//Table and key
 	EXP_INDEXED,
+
+	/* Closure */
+	EXP_CLOSURE,
+
+	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
+	EXP_UNAVAILABLE,
 } ls_Expkind;
+
+enum {
+	EXP_NTF_NIL,
+	EXP_NTF_TRUE,
+	EXP_NTF_FALSE,
+};
 
 //Expressions whose value has been stored on stack, upvalue table or const table
 //Including already calculated expressions and locals, upvals
@@ -37,12 +49,23 @@ typedef struct ls_IndexedExpr
 	ls_StoredExpr key;
 } ls_IndexedExpr;
 
+//Not calculated closure
+typedef struct ls_ClosureExpr
+{
+	ls_Expkind k;
+	ls_NLocal p;
+} ls_ClosureExpr;
+
+typedef ls_StoredExpr ls_NTFExpr;
+
 typedef struct ls_Expr {
 	union
 	{
 		ls_Expkind k;//Common header, used to get expression type
 		ls_StoredExpr s;
 		ls_IndexedExpr i;
+		ls_ClosureExpr c;
+		ls_NTFExpr n;
 	} u;
 	//int t;  /* patch list of `exit when true' */
 	//int f;  /* patch list of `exit when false' */
@@ -104,7 +127,7 @@ typedef struct ls_Block
 	ls_NLocal nactvar;  /* # active locals outside the block */
 	//short firstlabel;  /* index of first label in this block */
 	//short firstgoto;  /* index of first pending goto in this block */
-	//ls_byte upval;  /* true if some variable in the block is an upvalue */
+	ls_byte hasup;  /* true if some variable in the block is an upvalue */
 	//ls_byte isloop;  /* true if `block' is a loop */
 } ls_Block;
 
@@ -134,12 +157,12 @@ typedef struct ls_ParseFunc
 	ls_NLocal nupvals;
 
 	int nk;  /* number of elements in `k' */
+	int np;  /* number of elements in `p' */
 
 	//(by acaly) this table is pushed on stack used to prevent objects to be collected by gc
 	//ls_Table *h;  /* table to find (and reuse) elements in `k' */
 	//int lasttarget;   /* 'label' of last 'jump label' */
 	//int jpc;  /* list of pending jumps to `pc' */
-	//int np;  /* number of elements in `p' */
 	//int firstlocal;  /* index of first local var (in Dyndata array) */
 	//short nlocvars;  /* number of elements in 'f->locvars' */
 	//ls_byte nactvar;  /* number of active local variables */

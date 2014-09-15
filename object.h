@@ -54,14 +54,14 @@ typedef struct ls_Proto
 	ls_NLocal sizeupvalues;  /* size of 'upvalues' */
 	ls_Value *k;  /* constants used by the function */
 	Instruction *code;
-	//struct ls_Proto **p;  /* functions defined inside the function */
+	struct ls_Proto **p;  /* functions defined inside the function */
 	//int *lineinfo;  /* map from opcodes to source lines (debug information) */
 	//union Closure *cache;  /* last created closure with this prototype */
 	//TString  *source;  /* used for debug information */
 	int sizek;  /* size of `k' */
 	int sizecode;
 	//int sizelineinfo;
-	//int sizep;  /* size of `p' */
+	int sizep;  /* size of `p' */
 	//int linedefined;
 	//int lastlinedefined;
 	//GCObject *gclist;

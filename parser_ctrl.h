@@ -6,7 +6,7 @@ static void block(ls_ParserData* pd)
 	next_token();//skip '{'
 	ls_Block bl;
 	enterblock(pd, &bl, ls_FALSE);
-	statlist(pd);
+	statlist(pd, '}');
 	leaveblock(pd);
 	check_and_next('}');
 }

@@ -3,7 +3,8 @@
 
 //Get LocalVar information from Proto
 //Most information is stored in Proto, not in ParseFunc
-//index is that of ParseFunc.locals.nact, not that of ls_ParserData.actvarmap.n
+//index is that of ParseFunc.locals.nact, not that of 
+//ls_ParserData.actvarmap.n (includes outer func) or freereg (may include temp)
 //Note that in Proto there're not only active ones so a map is needed (actvarmap)
 static ls_LocVar* getlocalfromproto(ls_ParserData* pd, ls_ParseFunc* pf, int index)
 {
@@ -29,7 +30,8 @@ static ls_NLocal registerlocalvar(ls_ParserData* pd, ls_String* varname)
 
 //Add information for a new local to Proto and ParseData
 //ParseFunc.locals.nact is not changed (which is changed in lsYL_localvisiblestart)
-static void lsYL_newlocal(ls_ParserData* pd, ls_String* varname)
+//If v is not ls_NULL, return the new local
+static void lsYL_newlocal(ls_ParserData* pd, ls_String* varname, ls_Expr* v)
 {
 	ls_NLocal reg = registerlocalvar(pd, varname);
 	ls_ParseFunc* pf = pd->pf;
@@ -37,16 +39,31 @@ static void lsYL_newlocal(ls_ParserData* pd, ls_String* varname)
 		MAX_ACTIVE_LOCAL_IN_FUNC, "local variables");
 	lsM_growvector(pd->L, pd->actvarmap.arr, pd->actvarmap.n + 1,
 		pd->actvarmap.size, ls_Vardesc, MAX_ACTIVE_LOCAL_IN_PARSER, "local variables");
+
+	//Setup map
 	pd->actvarmap.arr[pd->actvarmap.n++].idx = reg;
+
+	//Note reg is id in proto (including not active locals)
+	//we need another id that indicates the position on stack
+	int id_on_stack = pf->freereg++;
+	
+	//Return the new local to v
+	if (v)
+	{
+		lsK_makestored(pd, EXP_LOCAL, id_on_stack, v);
+	}
 }
 
+//This function make the local variables really visible.
+//Called after lsYL_newlocal and after initializing the locals.
+//Separated from lsYL_newlocal to parse codes as `var a=a;` 
+//(the `a` after `=` would be global or upvalue but not the local)
 static void lsYL_localvisiblestart(ls_ParserData* pd, ls_NLocal number)
 {
 	ls_ParseFunc* pf = pd->pf;
-	//TODO In lua freereg is set in adjust_assign. So any differences?
-	//SOLVED: difference: in lua, any new free reg should be initilized with nil. 
-	//so it's set in ajust_assign who fills unset with nil
-	pf->freereg += number;
+
+	//Update act var number and set startpc
+
 	while (number--)
 	{
 		getlocalfromproto(pd, pf, (pf->locals.nact)++)->startpc = pf->pc;
@@ -65,7 +82,7 @@ static void lsYL_localvisibleend(ls_ParserData* pd, ls_NLocal number)
 	}
 }
 
-//Search varname in the given function (pf). Only search in locals
+//Search varname in the given function (pf). Only search in active locals
 static int searchlocal(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* varname)
 {
 	for (int i = pf->locals.nact - 1; i >= 0; --i)
@@ -88,10 +105,22 @@ static int newupvalue(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* name, ls_B
 	lsM_growvector(pd->L, f->upvalues, pf->nupvals, f->sizeupvalues,
 		ls_Upvalue, MAX_UPVAL_IN_PROTO, "upvalues");
 	while (oldsize < f->sizeupvalues) f->upvalues[oldsize++].name = NULL;
-	f->upvalues[pf->nupvals].inlocal = enislocal;
-	f->upvalues[pf->nupvals].idx = enid;
-	f->upvalues[pf->nupvals].name = name;
-	return pf->nupvals++;
+
+	int id = pf->nupvals++;
+	f->upvalues[id].inlocal = enislocal;
+	f->upvalues[id].idx = enid;
+	f->upvalues[id].name = name;
+
+	//Make the block to close the upval when exiting
+	if (pf->prev)
+	{
+		ls_Block* bl = pf->prev->bl;
+		while (bl->nactvar > id)
+			bl = bl->previous;
+		bl->hasup = ls_TRUE;
+	}
+
+	return id;
 }
 
 static int searchvar(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* varname, ls_Bool* islocal)

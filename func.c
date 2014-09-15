@@ -15,6 +15,8 @@ LSI_EXTERN ls_Proto* lsF_newproto(ls_State *L)
 	f->sizeupvalues = 0;
 	f->k = ls_NULL;
 	f->sizek = 0;
+	f->p = ls_NULL;
+	f->sizep = 0;
 	//f->k = NULL;
 	//f->sizek = 0;
 	//f->p = NULL;

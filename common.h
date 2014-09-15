@@ -131,6 +131,7 @@ typedef int ls_NInst; //instruments
 #define MAX_ACTIVE_LOCAL_IN_PARSER  (INT_MAX - 2)
 
 #define MAX_INST_IN_PROTO           SHRT_MAX
+#define MAX_PROTO_IN_PROTO          INST_ADDR_MAX
 
 
 #endif

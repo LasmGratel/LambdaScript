@@ -10,18 +10,18 @@
 #include "func.h"
 
 static void expr(ls_ParserData* pd, ls_Expr* v);
-static void statlist(ls_ParserData* pd);
+static void statlist(ls_ParserData* pd, ls_uint16 f);
 static void enterblock(ls_ParserData* pd, ls_Block* bl, ls_byte isloop);
 static void leaveblock(ls_ParserData* pd);
 static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf);
-static void leavefunc(ls_ParserData* pd);
+static ls_Proto* leavefunc(ls_ParserData* pd);
 
 #include "parser_util.h"
 #include "parser_loc.h"
 #include "parser_expr.h"
 #include "parser_ctrl.h"
 
-static void funcbody(ls_ParserData* pd)
+static void funcbody(ls_ParserData* pd, ls_Expr* v)
 {
 	//Stack objects
 	ls_ParseFunc pf;
@@ -39,23 +39,50 @@ static void funcbody(ls_ParserData* pd)
 	//Now enter block
 	enterblock(pd, &bl, ls_FALSE);
 
-	statlist(pd);
+	statlist(pd, '}');
 
 	leaveblock(pd);
 	check_and_next('}');
-	leavefunc(pd);
+	
+	ls_Proto* fn = leavefunc(pd);
 
 	//Always end with ';'
 	check_and_next(';');
+
+	//Add f to Proto list
+	ls_Proto* fo = pd->pf->f;
+
+	int old_size = fo->sizep;
+	lsM_growvector(pd->L, fo->p, pd->pf->np, fo->sizep, ls_Proto*, MAX_PROTO_IN_PROTO, "local functions");
+	while (old_size < fo->sizep)
+	{
+		fo->p[old_size++] = ls_NULL;
+	}
+
+	int p = pd->pf->np++;
+	fo->p[p] = fn;
+	lsK_makeclosure(pd, p, v);
 }
 
 static void localfunc(ls_ParserData* pd)
 {
 	next_token();//skip 'func'
 	ls_String* name = check_get_identifier();
+
+	//Create local var
+	ls_Expr var;
+	lsYL_newlocal(pd, name, &var);
+	lsYL_localvisiblestart(pd, 1);
+
 	next_token();//skip name
-	//Just read the body
-	funcbody(pd);
+
+	ls_Expr func;
+	
+	//Read the body
+	funcbody(pd, &func);
+
+	//Assign
+	lsK_assign(pd, &var, &func);
 }
 
 static void stat(ls_ParserData* pd)
@@ -65,17 +92,21 @@ static void stat(ls_ParserData* pd)
 	{
 	case TK_VAR:
 		next_token();
-		if (ls->current.t == TK_IDENTIFIER)
-		{
-			//newlocalvar(pd, ls->current.d.objs);
-			lsYL_newlocal(pd, check_get_identifier());
-		}
+
+		ls_assert(ls->current.t == TK_IDENTIFIER);
+
+		ls_Expr var;
+		lsYL_newlocal(pd, check_get_identifier(), &var);
+		
 		next_token();
-		if (ls->current.t == ';')
-		{
-			lsX_next(ls);
-		}
-		//adjustlocalvars(pd, 1);//add 1 new local
+		ls_assert(ls->current.t == ';');
+		lsX_next(ls);
+
+		ls_Expr nil;
+		lsK_makenil(pd, &nil);
+		lsK_assign(pd, &var, &nil);
+		
+		//Visible after initialization
 		lsYL_localvisiblestart(pd, 1);
 		break;
 
@@ -95,9 +126,9 @@ static void stat(ls_ParserData* pd)
 	}
 }
 
-static void statlist(ls_ParserData* pd)
+static void statlist(ls_ParserData* pd, ls_uint16 f)
 {
-	while (pd->ls->current.t != TK_EOS && pd->ls->current.t != '}')
+	while (pd->ls->current.t != f)
 	{
 		stat(pd);
 	}
@@ -127,9 +158,11 @@ static void enterfunc(ls_ParserData* pd, ls_ParseFunc* pf)
 	//Consts
 	pf->nk = 0;
 
+	//Protos
+	pf->np = 0;
 }
 
-static void leavefunc(ls_ParserData* pd)
+static ls_Proto* leavefunc(ls_ParserData* pd)
 {
 	//Function chain
 	ls_ParseFunc* pf = pd->pf;
@@ -144,10 +177,14 @@ static void leavefunc(ls_ParserData* pd)
 	f->sizecode = pf->pc;
 	lsM_reallocvector(L, f->k, f->sizek, pf->nk, ls_Value);
 	f->sizek = pf->nk;
+	lsM_reallocvector(L, f->p, f->sizep, pf->np, ls_Proto*);
+	f->sizep = pf->np;
 	lsM_reallocvector(L, f->locvars, f->sizelocvars, pf->locals.n, ls_LocVar);
 	f->sizelocvars = pf->locals.n;
 	lsM_reallocvector(L, f->upvalues, f->sizeupvalues, pf->nupvals, ls_Upvalue);
 	f->sizeupvalues = pf->nupvals;
+
+	return f;
 }
 
 //Setup everything when entering a block
@@ -163,6 +200,9 @@ static void enterblock(ls_ParserData* pd, ls_Block* bl, ls_byte isloop)
 	//Other tasks
 	//Locals
 	bl->nactvar = pf->locals.nact;
+
+	//Upvalue mark
+	bl->hasup = 0;
 }
 
 static void leaveblock(ls_ParserData* pd)
@@ -178,7 +218,10 @@ static void leaveblock(ls_ParserData* pd)
 	int c = pf->locals.nact - bl->nactvar;
 	lsYL_localvisibleend(pd, c); //Remove some locals
 	pd->pf->freereg -= c;
-	//TODO parse close local
+
+	//Close upvalues
+	if (bl->hasup)//TODO in lua it also check bl->previous?
+		lsK_closeupvalue(pd, c);
 }
 
 static ls_Proto* mainfunc(ls_ParserData* pd)
@@ -195,16 +238,11 @@ static ls_Proto* mainfunc(ls_ParserData* pd)
 	newupvalue(pd, &pf, pd->nameg, ls_TRUE, 0);
 
 	//Start parsing
-	statlist(pd);
+	statlist(pd, TK_EOS);
 
 	leaveblock(pd);
 
-	//Currently return the result as ls_Proto*
-	//TODO change this to push it onto stack
-	ls_Proto* ret = pd->pf->f;
-
-	leavefunc(pd);
-	return ret;
+	return leavefunc(pd);
 }
 
 void lsY_rawparse(ls_State* L, ls_LexState* zin)
@@ -224,9 +262,9 @@ void lsY_rawparse(ls_State* L, ls_LexState* zin)
 	lsX_next(zin);
 	//Parse mainfunc
 	ls_Proto* ret = mainfunc(&pd);
-	
-	lsK_reviewcode(ret);
 
 	//Stream should end
 	check_current_token(TK_EOS);
+
+	lsK_reviewcode(ret);
 }

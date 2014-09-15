@@ -16,17 +16,22 @@
 #define expr_keyt(e) (expr_key(e)->k)
 #define expr_tab(e) (&(e)->u.i.tab)
 #define expr_tabid(e) (expr_tab(e)->id)
+
 #define expr_s(e) (&(e)->u.s)
+#define expr_c(e) (&(e)->u.c)
+#define expr_ntf(e) (&(e)->u.n)
 
 #define sexpr_t(s) ((s)->k)
 #define sexpr_id(s)    ((s)->id)
+#define cexpr_id(c) ((c)->p)
 
-#define expr_is_stored(s)  (expr_t(s) == EXP_LOCAL || expr_t(s) == EXP_TEMP || expr_t(s) == EXP_UPVAL || expr_t(s) == EXP_CONST)
+#define expr_is_stored(s)  (expr_t(s) == EXP_LOCAL || expr_t(s) == EXP_TEMP || expr_t(s) == EXP_UPVAL || expr_t(s) == EXP_CONST || expr_t(s) == EXP_NTF)
 #define expr_is_stack(s)   (expr_t(s) == EXP_LOCAL || expr_t(s) == EXP_TEMP)
 #define expr_is_temp(s)    (expr_t(s) == EXP_TEMP)
 
 #define expr_is_unavailable(s) (expr_t(s) == EXP_UNAVAILABLE)
 #define expr_is_indexed(s) (expr_t(s) == EXP_INDEXED)
+#define expr_is_closure(s) (expr_t(s) == EXP_CLOSURE)
 
 
 #define sexpr_is_stored(s) (sexpr_t(s) == EXP_LOCAL || sexpr_t(s) == EXP_TEMP || sexpr_t(s) == EXP_UPVAL || sexpr_t(s) == EXP_CONST)
@@ -34,16 +39,19 @@
 #define sexpr_is_temp(s)   (sexpr_t(s) == EXP_TEMP)
 
 /* code */
-#define OP_GETTABLE 1
-#define OP_SETTABLE 2
-#define OP_MOVE     3
+#define OP_GETTABLE      1 //799 to table key
+#define OP_SETTABLE      2 //799 val table key
+#define OP_MOVE          3 //799 0 to from
+#define OP_JUMP          4 //799 closeup ? ?
+#define OP_CLOSURE       5 //799 protoid resultto ?
+#define OP_FILL          6 //799 tostack ? ?
 
 #define make_op_7799(a, b, c, d) ((((((a << 7) + b) << 9) + c) << 9) + d)
 
 #define new_temp_id() (pd->pf->freereg++)
 
 #define storedcode7(v) ((v->id) & 127)
-#define storedcode9_q(k) (((k)==EXP_CONST) ? 0 : (k)==EXP_LOCAL ? 128 : /*EXP_UPVAL*/ 256)
+#define storedcode9_q(k) (((k)==EXP_CONST) ? 0 : ((k)==EXP_LOCAL/* || (k)==EXP_TEMP*/) ? 128 : (k)==EXP_UPVAL ? 256 : /* EXP_NTF */(128+256) )
 #define storedcode9(v) (storedcode7(v) + storedcode9_q(sexpr_t(v)))
 
 
@@ -64,6 +72,11 @@ static Instruction settable(ls_StoredExpr* tab, ls_StoredExpr* key, ls_StoredExp
 static Instruction move(ls_StoredExpr* l, ls_StoredExpr* r)
 {
 	return make_op_7799(OP_MOVE, 0, storedcode9(l), storedcode9(r));
+}
+
+static Instruction makeclosure(ls_ClosureExpr* cl, ls_StoredExpr* store_at)
+{
+	return make_op_7799(OP_CLOSURE, cexpr_id(cl), storedcode9(store_at), 0);
 }
 
 /* helper */
@@ -112,7 +125,30 @@ static void dogettable(ls_ParserData* pd, ls_Expr* v)
 	*expr_s(v) = stored_expr;
 }
 
+static void domakeclosure(ls_ParserData* pd, ls_Expr* v)
+{
+	ls_assert(expr_is_closure(v));
+	ls_StoredExpr e;
+	sexpr_t(&e) = EXP_TEMP;
+	sexpr_id(&e) = new_temp_id();
+	
+	write_code(pd, makeclosure(expr_c(v), &e));
+	*expr_s(v) = e;
+}
+
 /* generator api */
+
+void lsK_makenil(ls_ParserData* pd, ls_Expr* expr)
+{
+	expr_t(expr) = EXP_NTF;
+	expr_ntf(expr)->id = EXP_NTF_NIL;
+}
+
+void lsK_makebool(ls_ParserData* pd, ls_Bool b, ls_Expr* expr)
+{
+	expr_t(expr) = EXP_NTF;
+	expr_ntf(expr)->id = b ? EXP_NTF_TRUE : EXP_NTF_FALSE;
+}
 
 void lsK_makestrk(ls_ParserData* pd, ls_String* str, ls_Expr* expr)
 {
@@ -158,11 +194,18 @@ void lsK_makeindexed(ls_ParserData* pd, ls_Expr* v, ls_Expr* key)
 
 void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 {
-	if (expr_is_indexed(r) && expr_is_stack(r))
+	if (expr_is_stack(l))
 	{
-		//Get table mode
-		write_code(pd, gettable(expr_tab(r), expr_key(r), expr_s(l)));
-		return;
+		//Currently assign to stack is much more easier. (get table, make closure)
+		switch (expr_t(r))
+		{
+		case EXP_INDEXED:
+			write_code(pd, gettable(expr_tab(r), expr_key(r), expr_s(l)));
+			return;
+		case EXP_CLOSURE:
+			write_code(pd, makeclosure(expr_c(r), expr_s(l)));
+			return;
+		}
 	}
 	
 	//Or must store it first
@@ -177,21 +220,39 @@ void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 	case EXP_UPVAL:
 		write_code(pd, move(expr_s(l), expr_s(r)));
 		break;
+	case EXP_NTF:
+		//error
 	default:
 		not_supported_yet();
 	}
+
+	//Pop right if it's temp
+	pop_temp(pd, expr_s(r));
 }
+
 void lsK_prepmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info)
 {
+	*info = pd->pf->freereg;
 }
+
 void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, ls_Expr* value)
 {
+	ls_StoredExpr temp;
+	sexpr_t(&temp) = EXP_LOCAL;//make it local to be assigned
+	sexpr_id(&temp) = new_temp_id();
+	lsK_assign(pd, &temp, value);
+	sexpr_t(&temp) = EXP_TEMP;
 }
+
 void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n)
 {
+	write_code(pd, make_op_7799(OP_FILL, *info + n, 0, 0));
 }
+
 void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int i, ls_Expr* expr)
 {
+	expr_t(expr) = EXP_TEMP;
+	sexpr_id(expr_s(expr)) = *info + i;
 }
 
 void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
@@ -201,7 +262,24 @@ void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
 	case EXP_INDEXED:
 		dogettable(pd, v);
 		break;
+	case EXP_CLOSURE:
+		domakeclosure(pd, v);
+		break;
+	case EXP_NTF:
+		//do nothing
+		break;
 	}
+}
+
+void lsK_closeupvalue(ls_ParserData* pd, int n)
+{
+	write_code(pd, make_op_7799(OP_JUMP, n, 0, 0));
+}
+
+void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret)
+{
+	expr_t(ret) = EXP_CLOSURE;
+	cexpr_id(expr_c(ret)) = p;
 }
 
 /* review */
@@ -216,16 +294,30 @@ static void print9(Instruction code)
 		printf(" CONST(%d)", code & ((1 << 7) - 1));
 		break;
 	case 1:
-		printf(" LOCAL(%d)", code & ((1 << 7) - 1));
+		printf(" STACK(%d)", code & ((1 << 7) - 1));
 		break;
 	case 2:
 		printf(" UPVAL(%d)", code & ((1 << 7) - 1));
+		break;
+	case 3:
+		switch (code & ((1 << 7) - 1))
+		{
+		case EXP_NTF_NIL:
+			printf(" NIL     ");
+			break;
+		case EXP_NTF_TRUE:
+			printf(" TRUE    ");
+			break;
+		case EXP_NTF_FALSE:
+			printf(" FALSE   ");
+			break;
+		}
 		break;
 	}
 }
 static void print7(Instruction code)
 {
-	printf(" LOCAL(%d)", code);
+	printf(" STACK(%d)", code);
 }
 static void print_code(Instruction code)
 {
@@ -259,6 +351,20 @@ static void print_code(Instruction code)
 		printf(" ] :=");
 		print7(a);
 		break;
+	case OP_JUMP:
+		if (b == 0 && c == 0)
+		{
+			printf("CLOSE     %d", a);
+		}
+		break;
+	case OP_CLOSURE:
+		printf("CLOSURE  ");
+		print9(b);
+		printf(" :=");
+		printf(" PROTO(%d) ", a);
+		break;
+	case OP_FILL:
+		printf("FILL      %d", a);
 	}
 }
 
@@ -306,4 +412,12 @@ void lsK_reviewcode(ls_Proto* p)
 		printf("\n");
 	}
 	printf(HLINE);
+
+	printf("Subfunctions:\n");
+	for (int i = 0; i < p->sizep; ++i)
+	{
+		printf(P_TAB "(%d) START_SUBFUNCION\n", i);
+		lsK_reviewcode(p->p[i]);
+		printf(P_TAB "(%d) END_SUBFUNCTION\n", i);
+	}
 }

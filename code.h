@@ -2,6 +2,8 @@
 #define LS_CODE_H
 
 /* Expression and assignment basic */
+LSI_EXTERN void lsK_makenil(ls_ParserData* pd, ls_Expr* expr);
+LSI_EXTERN void lsK_makebool(ls_ParserData* pd, ls_Bool b, ls_Expr* expr);
 //Make a string const into expr.
 LSI_EXTERN void lsK_makestrk(ls_ParserData* pd, ls_String* str, ls_Expr* expr);
 //Make a StoredExpr. `k` can only be `EXP_LOCAL`, `EXP_UPVAL`, or `EXP_CONST`.
@@ -24,6 +26,10 @@ LSI_EXTERN void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, 
 //Note: this function should not be directly called in parser. Let lsK_assign do it automatically.
 //lsK will also take care of the stack when doing these.
 LSI_EXTERN void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v);
+//Close n locals and their upvalues
+LSI_EXTERN void lsK_closeupvalue(ls_ParserData* pd, int n);
+
+LSI_EXTERN void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret);
 
 LSI_EXTERN void lsK_reviewcode(ls_Proto* p);
 
