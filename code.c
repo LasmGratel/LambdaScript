@@ -132,12 +132,22 @@ void lsK_makeindexed(ls_ParserData* pd, ls_Expr* v, ls_Expr* key)
 
 void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 {
-	ls_assert(r->u.k == EXP_CONST || r->u.k == EXP_LOCAL || r->u.k == EXP_UPVAL);
+	if (r->u.k == EXP_INDEXED && (l->u.k == EXP_LOCAL || l->u.k == EXP_UPVAL))
+	{
+		//get table mode
+		write_code(pd, gettable(&r->u.i.tab, &r->u.i.key, &l->u.s));
+		return;
+	}
+	else if (r->u.k == EXP_INDEXED)
+	{
+		//must store it first
+		lsK_storeexpr(pd, r);
+	}
 	if (l->u.k == EXP_INDEXED)
 	{
 		write_code(pd, settable(&l->u.i.tab, &l->u.i.key, &r->u.s));
 	}
-	else if (l->u.k == EXP_LOCAL)
+	else if (l->u.k == EXP_LOCAL | l->u.k == EXP_UPVAL)
 	{
 		write_code(pd, move(&l->u.s, &r->u.s));
 	}
