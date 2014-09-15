@@ -122,10 +122,15 @@ typedef ls_uint32 Instruction;
 typedef ls_int32 ls_NParserG; //suitable for all following types
 typedef ls_int32 ls_NLocal; //locals
 typedef int ls_NInst; //instruments
-#define MAX_LOCAL_IN_PROTO  SHRT_MAX
-#define MAX_UPVAL_IN_PROTO	UCHAR_MAX
+
+#define INST_ADDR_MAX               127
+#define MAX_CONST_IN_PROTO          INST_ADDR_MAX
+#define MAX_UPVAL_IN_PROTO          INST_ADDR_MAX
+#define MAX_LOCAL_IN_PROTO          INST_ADDR_MAX
+#define MAX_ACTIVE_LOCAL_IN_FUNC    INST_ADDR_MAX
 #define MAX_ACTIVE_LOCAL_IN_PARSER  (INT_MAX - 2)
-#define MAX_ACTIVE_LOCAL_IN_FUNC    200
+
+#define MAX_INST_IN_PROTO           SHRT_MAX
 
 
 #endif

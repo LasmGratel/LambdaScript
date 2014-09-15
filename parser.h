@@ -2,10 +2,22 @@
 #define LS_PARSER_H
 
 typedef enum {
+	/* No data */
+	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
+	EXP_UNAVAILABLE,
+
+	/* Stored */
+	//Local variable
 	EXP_LOCAL,
+	//Calculated temperary on stack
+	EXP_TEMP,
+	//Upvalue
 	EXP_UPVAL,
+	//Constant (k)
 	EXP_CONST,
 
+	/* Indexed */
+	//Table and key
 	EXP_INDEXED,
 } ls_Expkind;
 
@@ -35,6 +47,8 @@ typedef struct ls_Expr {
 	//int t;  /* patch list of `exit when true' */
 	//int f;  /* patch list of `exit when false' */
 } ls_Expr;
+
+//Helper functions are mostly used in code.c, so defined there.
 
 //Just used to store stack position
 //Is not directly used by parser

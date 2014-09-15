@@ -64,13 +64,13 @@ static void stat(ls_ParserData* pd)
 	switch (ls->current.t)
 	{
 	case TK_VAR:
-		lsX_next(ls);
+		next_token();
 		if (ls->current.t == TK_IDENTIFIER)
 		{
 			//newlocalvar(pd, ls->current.d.objs);
 			lsYL_newlocal(pd, check_get_identifier());
 		}
-		lsX_next(ls);
+		next_token();
 		if (ls->current.t == ';')
 		{
 			lsX_next(ls);
@@ -175,7 +175,9 @@ static void leaveblock(ls_ParserData* pd)
 
 	//Other tasks
 	//Locals
-	lsYL_localvisibleend(pd, pf->locals.nact - bl->nactvar); //Remove some locals
+	int c = pf->locals.nact - bl->nactvar;
+	lsYL_localvisibleend(pd, c); //Remove some locals
+	pd->pf->freereg -= c;
 	//TODO parse close local
 }
 

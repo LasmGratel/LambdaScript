@@ -111,7 +111,7 @@ int main()
 		lsZ_freebuf(&buf);
 	}
 
-	/* Lexical analyzer */ for (int i = 0; i < 1000; ++i){
+	/* Lexical analyzer */ for (int i = 0; i < 1; ++i){
 		const char* name[] = {
 			"EOS",
 			"Symbol",
@@ -124,9 +124,9 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		//const char* code = "var a; var b; a.field=b;";
-		char code[1000];
-		gets_s(code, sizeof(code));
+		const char* code = "var a; var b; a.field=b.b;b.g=g;";
+		//char code[1000];
+		//gets_s(code, sizeof(code));
 		set_string_stream(&stream, code);
 		printf("Parsing code: \n    %s\n", code);
 		lsX_initlex(L, &lex, &stream);

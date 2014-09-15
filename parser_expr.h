@@ -43,6 +43,7 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 			lsK_assign(pd, &lh->v, &right);
 
 			//we need to skip to the end of the statement
+			//TODO should we check the grammar of this part?
 			while (pd->ls->current.t != ';')
 			{
 				next_token();
@@ -63,10 +64,6 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 			do
 			{
 				expr(pd, &right);
-
-				//Must be stored
-				//That is, with a.a,b=c.c,1, we should calc b.b before evaluating 1
-				lsK_storeexpr(pd, &right);
 				lsK_pushmultiassign(pd, &mai, &right);
 			} while (next_when(',')); //Stop when it's no ','
 			check_and_next(';');//So it should be ';'

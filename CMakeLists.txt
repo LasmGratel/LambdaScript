@@ -7,27 +7,39 @@ project (LambdaScript)
 # Library files
 
 set(LIB_SOURCES
+  code.c
   ctype.c
+  func.c
   gc.c
   lex.c
   mem.c
+  parser.c
   state.c
   stream.c
   string.c
+  table.c
 )
 
 set(LIB_HEADERS
+  code.h
   common.h
   config.h
   ctype.h
+  func.h
   gc.h
   lex.h
   ls.h
   mem.h
   object.h
+  parser.h
+  parser_ctrl.h
+  parser_expr.h
+  parser_loc.h
+  parser_util.h
   state.h
   stream.h
   string.h
+  table.h
 )
 
 

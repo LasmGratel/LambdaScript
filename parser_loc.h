@@ -43,7 +43,10 @@ static void lsYL_newlocal(ls_ParserData* pd, ls_String* varname)
 static void lsYL_localvisiblestart(ls_ParserData* pd, ls_NLocal number)
 {
 	ls_ParseFunc* pf = pd->pf;
-	pf->freereg += number; //TODO In lua freereg is set in adjust_assign. So any differences?
+	//TODO In lua freereg is set in adjust_assign. So any differences?
+	//SOLVED: difference: in lua, any new free reg should be initilized with nil. 
+	//so it's set in ajust_assign who fills unset with nil
+	pf->freereg += number;
 	while (number--)
 	{
 		getlocalfromproto(pd, pf, (pf->locals.nact)++)->startpc = pf->pc;
