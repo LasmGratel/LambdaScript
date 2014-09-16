@@ -266,6 +266,7 @@ void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, ls_Expr* v
 void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n)
 {
 	write_code(pd, make_op_7799(OP_FILL, *info + n, 0, 0));
+	pd->pf->freereg = *info + n;
 }
 
 void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int i, ls_Expr* expr)
