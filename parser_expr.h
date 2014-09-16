@@ -150,6 +150,10 @@ constructor | FUNCTION body | suffixedexp */
 		lsK_makebool(pd, ls_FALSE, v);
 		next_token();
 		break;
+	case TK_NUMBER:
+		lsK_makenumk(pd, pd->ls->current.d.n, v);
+		next_token();
+		break;
 	case TK_STRING:
 		lsK_makestrk(pd, pd->ls->current.d.objs, v);
 		next_token();

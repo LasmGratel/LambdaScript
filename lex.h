@@ -8,7 +8,6 @@ enum RESERVED {
 	TK_NOT_USED = FIRST_RESERVED,
 
 	/* first reserved words */
-	//Let's have an var for test
 	TK_VAR, TK_FUNC,
 	TK_NIL, TK_TRUE, TK_FALSE,
 	RESERED_END,

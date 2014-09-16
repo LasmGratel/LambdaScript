@@ -6,6 +6,7 @@ LSI_EXTERN void lsK_makenil(ls_ParserData* pd, ls_Expr* expr);
 LSI_EXTERN void lsK_makebool(ls_ParserData* pd, ls_Bool b, ls_Expr* expr);
 //Make a string const into expr.
 LSI_EXTERN void lsK_makestrk(ls_ParserData* pd, ls_String* str, ls_Expr* expr);
+LSI_EXTERN void lsK_makenumk(ls_ParserData* pd, ls_Number str, ls_Expr* expr);
 //Make a StoredExpr. `k` can only be `EXP_LOCAL`, `EXP_UPVAL`, or `EXP_CONST`.
 LSI_EXTERN void lsK_makestored(ls_ParserData* pd, ls_Expkind k, ls_NLocal id, ls_Expr* expr);
 //Make a indexed expression into expr. v:=v[key].

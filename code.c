@@ -168,6 +168,23 @@ void lsK_makestrk(ls_ParserData* pd, ls_String* str, ls_Expr* expr)
 	v->v.gc = (ls_Object*) str;
 }
 
+void lsK_makenumk(ls_ParserData* pd, ls_Number num, ls_Expr* expr)
+{
+	ls_Proto* f = pd->pf->f;
+	int old_size = f->sizek;
+	lsM_growvector(pd->L, f->k, pd->pf->nk, f->sizek, ls_Value, MAX_CONST_IN_PROTO, "constants");
+	while (f->sizek > old_size)
+	{
+		f->k[old_size++].tt = LS_OBJ_NIL;
+	}
+	expr_t(expr) = EXP_CONST;
+	sexpr_id(expr_s(expr)) = pd->pf->nk++;
+
+	ls_Value* v = &f->k[sexpr_id(expr_s(expr))];
+	v->tt = LS_OBJ_NUMBER;
+	v->v.n = num;
+}
+
 void lsK_makestored(ls_ParserData* pd, ls_Expkind k, ls_NLocal id, ls_Expr* expr)
 {
 	expr_t(expr) = k;
@@ -396,6 +413,9 @@ void lsK_reviewcode(ls_Proto* p)
 		{
 		case LS_OBJ_STRING:
 			printf(P_TAB "(%d) %s\n", i, getstr(&p->k[i].v.gc->s));
+			break;
+		case LS_OBJ_NUMBER:
+			printf(P_TAB "(%d) %f\n", i, p->k[i].v.n);
 			break;
 		default:
 			printf(P_TAB "(%d) <unknown>\n", i);
