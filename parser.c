@@ -85,29 +85,104 @@ static void localfunc(ls_ParserData* pd)
 	lsK_assign(pd, &var, &func);
 }
 
+static void localvarassign(ls_ParserData* pd, ls_Assignment* assign, int n)
+{
+	ls_Assignment newvar;
+	switch (pd->ls->current.t)
+	{
+	case ';':
+		lsYL_localvisiblestart(pd, n);
+		//No assignment
+		break;
+	case ',':
+		//New var
+		next_token();
+		newvar.prev = assign;
+		lsYL_newlocal(pd, check_get_identifier(), &newvar.v);
+		next_token();
+		localvarassign(pd, &newvar, n + 1);
+		break;
+	case '=':
+		if (n == 1)
+		{
+			//Simple assignment
+			next_token();
+			ls_Expr r;
+			expr(pd, &r);
+			lsK_assign(pd, &assign->v, &r);
+
+			//The end of the statement
+			check_and_next(';');
+			return;
+		}
+		else
+		{
+			//Do multiassignment
+			next_token();
+			ls_Expr r;
+			ls_MultiAssignInfo info;
+
+			lsK_prepmultiassign(pd, &info);
+			do
+			{
+				expr(pd, &r);
+				lsK_pushmultiassign(pd, &info, &r);
+			} while (next_when(','));
+			check_and_next(';');
+
+			lsK_adjustmultiassign(pd, &info, n);
+
+			int index = n;
+			do
+			{
+				lsK_getmultiassign(pd, &info, --index, &r);
+				lsK_assign(pd, &assign->v, &r);
+				assign = assign->prev;
+			} while (assign);
+
+			pd->pf->freereg = pd->pf->locals.nact;
+
+			//Set local visible
+			lsYL_localvisiblestart(pd, n);
+			return;
+		}
+	}
+}
+
+static void localvar(ls_ParserData* pd)
+{
+	ls_LexState* ls = pd->ls;
+	next_token();
+
+	ls_assert(ls->current.t == TK_IDENTIFIER);
+
+	//ls_Expr var;
+	ls_Assignment assign;
+	assign.prev = ls_NULL;
+	lsYL_newlocal(pd, check_get_identifier(), &assign.v);
+
+	next_token();
+	localvarassign(pd, &assign, 1);
+	/*
+	ls_assert(ls->current.t == ';');
+	lsX_next(ls);
+
+	ls_Expr nil;
+	lsK_makenil(pd, &nil);
+	lsK_assign(pd, &var, &nil);
+
+	//Visible after initialization
+	lsYL_localvisiblestart(pd, 1);
+	*/
+}
+
 static void stat(ls_ParserData* pd)
 {
 	ls_LexState* ls = pd->ls;
 	switch (ls->current.t)
 	{
 	case TK_VAR:
-		next_token();
-
-		ls_assert(ls->current.t == TK_IDENTIFIER);
-
-		ls_Expr var;
-		lsYL_newlocal(pd, check_get_identifier(), &var);
-		
-		next_token();
-		ls_assert(ls->current.t == ';');
-		lsX_next(ls);
-
-		ls_Expr nil;
-		lsK_makenil(pd, &nil);
-		lsK_assign(pd, &var, &nil);
-		
-		//Visible after initialization
-		lsYL_localvisiblestart(pd, 1);
+		localvar(pd);
 		break;
 
 	case TK_FUNC:
