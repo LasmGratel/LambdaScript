@@ -51,7 +51,7 @@
 #define new_temp_id() (pd->pf->freereg++)
 
 #define storedcode7(v) ((v->id) & 127)
-#define storedcode9_q(k) (((k)==EXP_CONST) ? 0 : ((k)==EXP_LOCAL/* || (k)==EXP_TEMP*/) ? 128 : (k)==EXP_UPVAL ? 256 : /* EXP_NTF */(128+256) )
+#define storedcode9_q(k) (((k)==EXP_CONST) ? 0 : ((k)==EXP_LOCAL || (k)==EXP_TEMP) ? 128 : (k)==EXP_UPVAL ? 256 : /* EXP_NTF */(128+256) )
 #define storedcode9(v) (storedcode7(v) + storedcode9_q(sexpr_t(v)))
 
 
@@ -214,6 +214,8 @@ void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 	switch (expr_t(l))
 	{
 	case EXP_INDEXED:
+		//settable use 7 bit for r, so need to stack it first
+		lsK_stackexpr(pd, r);
 		write_code(pd, settable(expr_tab(l), expr_key(l), expr_s(r)));
 		break;
 	case EXP_LOCAL:
@@ -268,6 +270,19 @@ void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
 	case EXP_NTF:
 		//do nothing
 		break;
+	}
+}
+
+void lsK_stackexpr(ls_ParserData* pd, ls_Expr* v)
+{
+	ls_assert(expr_is_stored(v));
+	ls_StoredExpr e;
+	sexpr_t(&e) = EXP_TEMP;
+	if (!expr_is_stack(v))
+	{
+		sexpr_id(&e) = new_temp_id();
+		write_code(pd, move(&e, expr_s(v)));
+		*expr_s(v) = e;
 	}
 }
 

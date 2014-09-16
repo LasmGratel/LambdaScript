@@ -43,7 +43,7 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 			lsK_assign(pd, &lh->v, &right);
 
 			//we need to skip to the end of the statement
-			//TODO should we check the grammar of this part?
+			//TODO check the grammar of this part?
 			while (pd->ls->current.t != ';')
 			{
 				next_token();
@@ -52,6 +52,8 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 					semantic_error(pd, "unexpected EOS");
 				}
 			}
+
+			pd->pf->freereg = pd->pf->locals.nact;
 			next_token();//skip ';'
 		}
 		else
@@ -78,6 +80,9 @@ static void assignment(ls_ParserData* pd, ls_Assignment* lh, int nvars)
 				lsK_assign(pd, &lh->v, &right);
 				lh = lh->prev;
 			} while (lh);
+
+			//Reset regs
+			pd->pf->freereg = pd->pf->locals.nact;
 		}
 	}
 	else
@@ -133,6 +138,22 @@ constructor | FUNCTION body | suffixedexp */
 {
 	switch (pd->ls->current.t)
 	{
+	case TK_NIL:
+		lsK_makenil(pd, v);
+		next_token();
+		break;
+	case TK_TRUE:
+		lsK_makebool(pd, ls_TRUE, v);
+		next_token();
+		break;
+	case TK_FALSE:
+		lsK_makebool(pd, ls_FALSE, v);
+		next_token();
+		break;
+	case TK_STRING:
+		lsK_makestrk(pd, pd->ls->current.d.objs, v);
+		next_token();
+		break;
 	default:
 		suffixedexp(pd, v);
 	}

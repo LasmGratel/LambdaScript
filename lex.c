@@ -56,7 +56,8 @@
 
 //prepare for the strings
 static const char *const lsX_tokens[] = {
-	"var", "func"
+	"var", "func",
+	"nil", "true", "false",
 };
 
 void lsX_init(ls_State* L)
@@ -125,6 +126,7 @@ static void number(ls_LexState* ls, char c)
 
 static void string(ls_LexState* ls)
 {
+	clear_buf();
 	char c;
 	for (;;)
 	{
