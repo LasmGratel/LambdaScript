@@ -33,6 +33,8 @@ LSI_EXTERN void lsK_stackexpr(ls_ParserData* pd, ls_Expr* v);
 LSI_EXTERN void lsK_closeupvalue(ls_ParserData* pd, int n);
 
 LSI_EXTERN void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret);
+//Return true if the result of `e` may contain multiple values
+LSI_EXTERN ls_Bool lsK_isexprmvalue(ls_ParserData* pd, ls_Expr* e);
 
 LSI_EXTERN void lsK_reviewcode(ls_Proto* p);
 

@@ -23,7 +23,8 @@ ls_Hash lsS_hash(const char* str, ls_MemSize l, ls_Hash seed)
 {
 	ls_Hash h = seed ^ cast(ls_Hash, l);
 	ls_MemSize step = (l >> LSI_HASHLIMIT) + 1;
-	for (ls_MemSize l1 = l; l1 >= step; l1 -= step)
+	ls_MemSize l1;
+	for (l1 = l; l1 >= step; l1 -= step)
 		h = h ^ ((h << 5) + (h >> 2) + cast_byte(str[l1 - 1]));
 	return h;
 }

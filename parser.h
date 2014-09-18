@@ -3,7 +3,7 @@
 
 typedef enum
 {
-	//nil(0), true(1), false(2)
+	//nil, true and false
 	EXP_NTF,
 
 	/* Stored */
@@ -22,6 +22,9 @@ typedef enum
 
 	/* Closure */
 	EXP_CLOSURE,
+
+	/* Function call */
+	EXP_CALL,
 
 	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
 	EXP_UNAVAILABLE,
@@ -57,6 +60,12 @@ typedef struct ls_ClosureExpr
 } ls_ClosureExpr;
 
 typedef ls_StoredExpr ls_NTFExpr;
+
+typedef struct ls_CallExpr
+{
+	ls_Expkind k;
+	ls_NLocal f;//Index of the function on stack. The params are pushed after.
+} ls_CallExpr;
 
 typedef struct ls_Expr {
 	union

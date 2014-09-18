@@ -85,7 +85,8 @@ static void lsYL_localvisibleend(ls_ParserData* pd, ls_NLocal number)
 //Search varname in the given function (pf). Only search in active locals
 static int searchlocal(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* varname)
 {
-	for (int i = pf->locals.nact - 1; i >= 0; --i)
+	int i;
+	for (i = pf->locals.nact - 1; i >= 0; --i)
 	{
 		if (lsS_equal(varname, getlocalfromproto(pd, pf, i)->varname))
 		{
@@ -134,7 +135,8 @@ static int searchvar(ls_ParserData* pd, ls_ParseFunc* pf, ls_String* varname, ls
 
 	//Try existed upval
 	ls_Upvalue* up = pf->f->upvalues;
-	for (int i = 0; i < pf->nupvals; i++)
+	int i;
+	for (i = 0; i < pf->nupvals; i++)
 	{
 		if (lsS_equal(up[i].name, varname)) return i;
 	}

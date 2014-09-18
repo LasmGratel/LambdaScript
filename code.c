@@ -256,11 +256,11 @@ void lsK_prepmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info)
 
 void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, ls_Expr* value)
 {
-	ls_StoredExpr temp;
-	sexpr_t(&temp) = EXP_LOCAL;//make it local to be assigned
-	sexpr_id(&temp) = new_temp_id();
+	ls_Expr temp;
+	expr_t(&temp) = EXP_LOCAL;//make it local to be assigned
+	sexpr_id(expr_s(&temp)) = new_temp_id();
 	lsK_assign(pd, &temp, value);
-	sexpr_t(&temp) = EXP_TEMP;
+	expr_t(&temp) = EXP_TEMP;
 }
 
 void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n)
@@ -313,6 +313,11 @@ void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret)
 {
 	expr_t(ret) = EXP_CLOSURE;
 	cexpr_id(expr_c(ret)) = p;
+}
+
+ls_Bool lsK_isexprmvalue(ls_ParserData* pd, ls_Expr* e)
+{
+	return expr_t(e) == -1;
 }
 
 /* review */
@@ -406,9 +411,11 @@ void lsK_reviewcode(ls_Proto* p)
 	printf("\nCode Review\n");
 	printf(HLINE);
 
+	int i;
+
 	//constants
 	printf("Constants:\n");
-	for (int i = 0; i < p->sizek; ++i)
+	for (i = 0; i < p->sizek; ++i)
 	{
 		switch (p->k[i].tt)
 		{
@@ -426,7 +433,7 @@ void lsK_reviewcode(ls_Proto* p)
 	
 	//local variables
 	printf("Local variables:\n");
-	for (int i = 0; i < p->sizelocvars; ++i)
+	for (i = 0; i < p->sizelocvars; ++i)
 	{
 		printf(P_TAB "(%d) %s\n", i, getstr(p->locvars[i].varname));
 	}
@@ -434,14 +441,14 @@ void lsK_reviewcode(ls_Proto* p)
 
 	//upvals
 	printf("Upvalues:\n");
-	for (int i = 0; i < p->sizeupvalues; ++i)
+	for (i = 0; i < p->sizeupvalues; ++i)
 	{
 		printf(P_TAB "(%d) %s\n", i, getstr(p->upvalues[i].name));
 	}
 	printf(HLINE);
 
 	printf("Instructions:\n");
-	for (int i = 0; i < p->sizecode; ++i)
+	for (i = 0; i < p->sizecode; ++i)
 	{
 		printf(P_TAB);
 		print_code(p->code[i]);
@@ -450,7 +457,7 @@ void lsK_reviewcode(ls_Proto* p)
 	printf(HLINE);
 
 	printf("Subfunctions:\n");
-	for (int i = 0; i < p->sizep; ++i)
+	for (i = 0; i < p->sizep; ++i)
 	{
 		printf(P_TAB "(%d) START_SUBFUNCION\n", i);
 		lsK_reviewcode(p->p[i]);

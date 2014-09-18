@@ -10,11 +10,13 @@ ls_Table* lsH_new(ls_State* L)
 	ls_Table* ret = lsC_newobj(L, LS_OBJ_TABLE, sizeof(ls_Table), ls_NULL);
 	ret->n = ret->size = 0;
 	ret->nodes = ls_NULL;
+	return ret;
 }
 
 ls_Value* lsH_get(ls_Table* tab, ls_Value* key)
 {
-	for (int i = 0; i < tab->n; ++i)
+	int i;
+	for (i = 0; i < tab->n; ++i)
 	{
 		if (lsO_valequal(key, &tab->nodes[i].key))
 		{
@@ -46,4 +48,5 @@ ls_Value* lsH_getorcreate(ls_State* L, ls_Table* tab, ls_Value* key)
 		node->key.v = *key;
 		return &node->val;
 	}
+	return ret;
 }

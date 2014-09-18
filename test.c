@@ -72,7 +72,8 @@ int main()
 		int n = 0, cap = 10;
 		int max = MAX_MEMSIZE;
 		vec = lsM_newvector(L, cap, int);
-		for (int i = 0; i < 20; ++i)
+		int i;
+		for (i = 0; i < 20; ++i)
 		{
 			lsM_growvector(L, vec, n, cap, int, 30, "test");
 			vec[n++] = n;
@@ -111,7 +112,9 @@ int main()
 		lsZ_freebuf(&buf);
 	}
 
-	/* Lexical analyzer */ for (int i = 0; i < 1; ++i){
+	/* Lexical analyzer */ 
+	int i;
+	for (i = 0; i < 1; ++i){
 		const char* name[] = {
 			"EOS",
 			"Symbol",
@@ -124,7 +127,7 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		const char* code = "var a,b=a;";
+		const char* code = "var a,b=1,2;";
 		//char code[1000];
 		//gets_s(code, sizeof(code));
 		set_string_stream(&stream, code);

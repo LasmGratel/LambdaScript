@@ -62,7 +62,8 @@ static const char *const lsX_tokens[] = {
 
 void lsX_init(ls_State* L)
 {
-	for (int i = 0; i < NUM_RESERVED; i++)
+	int i;
+	for (i = 0; i < NUM_RESERVED; i++)
 	{
 		ls_String *ts = lsS_newstr(L, lsX_tokens[i]);
 		lsS_fix(ts);  /* reserved words are never collected */
