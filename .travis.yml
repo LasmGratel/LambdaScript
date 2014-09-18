@@ -3,5 +3,5 @@ language: c
 script:
 - "mkdir build -p"
 - "cd build"
-- "cmake .."
+- "CC=\"gcc -std=c99\" cmake .."
 - "make"
