@@ -41,16 +41,6 @@
 #define sexpr_is_stack(s)  (sexpr_t(s) == EXP_LOCAL || sexpr_t(s) == EXP_TEMP)
 #define sexpr_is_temp(s)   (sexpr_t(s) == EXP_TEMP)
 
-/* code */
-#define OP_GETTABLE      1 //799 to table key
-#define OP_SETTABLE      2 //799 val table key
-#define OP_MOVE          3 //799 0 to from
-#define OP_JUMP          4 //799 closeup ? ?
-#define OP_CLOSURE       5 //799 protoid resultto ?
-#define OP_EXPANDFILL    6 //799 expand_from+1 fill_to+1
-#define OP_CALL          7 //799 calltype function
-
-#define OP_CALL_SUBTYPE(et) ((et) - EXP_CALL_SINGLERET)
 
 #define make_op_7799(a, b, c, d) ((((((a << 7) + b) << 9) + c) << 9) + d)
 
@@ -281,42 +271,6 @@ void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 	pop_temp(pd, expr_s(r));
 }
 
-void lsK_prepmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info)
-{
-	*info = pd->pf->freereg;
-}
-
-void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, ls_Expr* value)
-{
-	switch (expr_t(value))
-	{
-	case EXP_TEMP:
-		ls_assert(sexpr_id(expr_s(value)) == pd->pf->freereg); //must be the last
-		break;
-	case EXP_NTF:
-		//store not process NTF, so here we must force store it
-	{
-		ls_Expr temp;
-		expr_t(&temp) = EXP_LOCAL;//make it local to be assigned
-		sexpr_id(expr_s(&temp)) = new_temp_id();
-		lsK_assign(pd, &temp, value);
-		break;
-	}
-	default:
-		lsK_storeexpr(pd, value);
-	}
-	//Clear the value for safety
-	expr_t(value) = EXP_UNAVAILABLE;
-}
-
-void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n)
-{
-	//deprecated
-	ls_assert(0);
-	//write_code(pd, make_op_7799(OP_FILL, *info + n, 0, 0));
-	//pd->pf->freereg = *info + n;
-}
-
 void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
 {
 	switch (expr_t(v))
@@ -366,11 +320,6 @@ void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret)
 {
 	expr_t(ret) = EXP_CLOSURE;
 	cexpr_id(expr_c(ret)) = p;
-}
-
-ls_Bool lsK_isexprmvalue(ls_ParserData* pd, ls_Expr* e)
-{
-	return expr_t(e) == -1;
 }
 
 ls_Bool lsK_issimplecall(ls_ParserData* pd, ls_Expr* e)
@@ -446,159 +395,4 @@ void lsK_makecall(ls_ParserData* pd, ls_Expr* func, ls_Bool is_multi)
 	*func = c;
 	//Now the arguments are already poped
 	pd->pf->freereg = sexpr_id(expr_f(func)) + 1;
-}
-
-/* review */
-#define HLINE "----------------\n"
-#define P_TAB "    "
-
-static void print9(Instruction code)
-{
-	switch (code >> 7)
-	{
-	case 0:
-		printf(" CONST(%d)", code & ((1 << 7) - 1));
-		break;
-	case 1:
-		printf(" STACK(%d)", code & ((1 << 7) - 1));
-		break;
-	case 2:
-		printf(" UPVAL(%d)", code & ((1 << 7) - 1));
-		break;
-	case 3:
-		switch (code & ((1 << 7) - 1))
-		{
-		case EXP_NTF_NIL:
-			printf(" NIL     ");
-			break;
-		case EXP_NTF_TRUE:
-			printf(" TRUE    ");
-			break;
-		case EXP_NTF_FALSE:
-			printf(" FALSE   ");
-			break;
-		}
-		break;
-	}
-}
-static void print7(Instruction code)
-{
-	printf(" STACK(%d)", code);
-}
-static void print_code(Instruction code)
-{
-	printf("0x%x ", code);
-	Instruction opcode = code >> (7 + 9 + 9);
-	Instruction a = (code >> (9 + 9)) & ((1 << 7) - 1);
-	Instruction b = (code >> (9)) & ((1 << 9) - 1);
-	Instruction c = (code) & ((1 << 9) - 1);
-	switch (opcode)
-	{
-	case OP_MOVE:
-		printf("MOVE     ");
-		print9(b);
-		printf(" :=");
-		print9(c);
-		break;
-	case OP_GETTABLE:
-		printf("GET TABLE");
-		print7(a);
-		printf(" :=");
-		print9(b);
-		printf(" [");
-		print9(c);
-		printf(" ]");
-		break;
-	case OP_SETTABLE:
-		printf("SET TABLE");
-		print9(b);
-		printf(" [");
-		print9(c);
-		printf(" ] :=");
-		print7(a);
-		break;
-	case OP_JUMP:
-		if (b == 0 && c == 0)
-		{
-			printf("CLOSE     %d", a);
-		}
-		break;
-	case OP_CLOSURE:
-		printf("CLOSURE  ");
-		print9(b);
-		printf(" :=");
-		printf(" PROTO(%d) ", a);
-		break;
-	case OP_CALL:
-		printf("CALL      %s ", a == 0 ? "SINGLE" : a == 1 ? "LIST" : "MULTI");
-		print9(b);
-		break;
-	case OP_EXPANDFILL:
-		printf("ADJUST   ");
-		if (a)
-			print7(a - 1);
-			printf(" ->");
-		if (b)
-			print7(b - 1);
-		break;
-	}
-}
-
-void lsK_reviewcode(ls_Proto* p)
-{
-	printf("\nCode Review\n");
-	printf(HLINE);
-
-	int i;
-
-	//constants
-	printf("Constants:\n");
-	for (i = 0; i < p->sizek; ++i)
-	{
-		switch (p->k[i].tt)
-		{
-		case LS_OBJ_STRING:
-			printf(P_TAB "(%d) %s\n", i, getstr(&p->k[i].v.gc->s));
-			break;
-		case LS_OBJ_NUMBER:
-			printf(P_TAB "(%d) %f\n", i, p->k[i].v.n);
-			break;
-		default:
-			printf(P_TAB "(%d) <unknown>\n", i);
-		}
-	}
-	printf(HLINE);
-	
-	//local variables
-	printf("Local variables:\n");
-	for (i = 0; i < p->sizelocvars; ++i)
-	{
-		printf(P_TAB "(%d) %s\n", i, getstr(p->locvars[i].varname));
-	}
-	printf(HLINE);
-
-	//upvals
-	printf("Upvalues:\n");
-	for (i = 0; i < p->sizeupvalues; ++i)
-	{
-		printf(P_TAB "(%d) %s\n", i, getstr(p->upvalues[i].name));
-	}
-	printf(HLINE);
-
-	printf("Instructions:\n");
-	for (i = 0; i < p->sizecode; ++i)
-	{
-		printf(P_TAB);
-		print_code(p->code[i]);
-		printf("\n");
-	}
-	printf(HLINE);
-
-	printf("Subfunctions:\n");
-	for (i = 0; i < p->sizep; ++i)
-	{
-		printf(P_TAB "(%d) START_SUBFUNCION\n", i);
-		lsK_reviewcode(p->p[i]);
-		printf(P_TAB "(%d) END_SUBFUNCTION\n", i);
-	}
 }

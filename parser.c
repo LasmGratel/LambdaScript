@@ -8,6 +8,7 @@
 #include "code.h"
 #include "string.h"
 #include "func.h"
+#include "review.h"
 
 static void expr(ls_ParserData* pd, ls_Expr* v);
 static void statlist(ls_ParserData* pd, ls_uint16 f);
@@ -347,5 +348,5 @@ void lsY_rawparse(ls_State* L, ls_LexState* zin)
 	//Stream should end
 	check_current_token(TK_EOS);
 
-	lsK_reviewcode(ret);
+	lsR_reviewcode(ret);
 }

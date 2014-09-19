@@ -14,6 +14,7 @@ set(LIB_SOURCES
   lex.c
   mem.c
   parser.c
+  review.c
   state.c
   stream.c
   string.c
@@ -36,6 +37,7 @@ set(LIB_HEADERS
   parser_expr.h
   parser_loc.h
   parser_util.h
+  review.h
   state.h
   stream.h
   string.h
