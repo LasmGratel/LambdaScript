@@ -20,6 +20,9 @@ enum RESERVED {
 	TK_IDENTIFIER,
 	TK_STRING,
 
+	/* symbols */
+	TK_TRIDOT,
+
 	/* not implemented */
 	TK_BREAK,
 	TK_DO, TK_ELSE, TK_ELSEIF, TK_END, _TK_FALSE, TK_FOR, TK_FUNCTION,

@@ -24,7 +24,10 @@ typedef enum
 	EXP_CLOSURE,
 
 	/* Function call */
-	EXP_CALL,
+	//Don't change order!
+	EXP_CALL_SINGLERET,
+	EXP_CALL_LISTRET,
+	EXP_CALL_MULTIRET,
 
 	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
 	EXP_UNAVAILABLE,
@@ -64,7 +67,7 @@ typedef ls_StoredExpr ls_NTFExpr;
 typedef struct ls_CallExpr
 {
 	ls_Expkind k;
-	ls_NLocal f;//Index of the function on stack. The params are pushed after.
+	ls_StoredExpr f;//Index of the function on stack. The params are pushed after.
 } ls_CallExpr;
 
 typedef struct ls_Expr {
@@ -75,6 +78,7 @@ typedef struct ls_Expr {
 		ls_IndexedExpr i;
 		ls_ClosureExpr c;
 		ls_NTFExpr n;
+		ls_CallExpr f;
 	} u;
 	//int t;  /* patch list of `exit when true' */
 	//int f;  /* patch list of `exit when false' */
@@ -84,7 +88,20 @@ typedef struct ls_Expr {
 
 //Just used to store stack position
 //Is not directly used by parser
+//Deprecated
 typedef int ls_MultiAssignInfo;
+
+typedef struct ls_MultiExprInfo
+{
+	//Where the first expression (result) is. It's a EXP_TEMP.
+	int start;
+	//Number of expression. One multi-returned is counted once.
+	//If used in multi-assignment and left values are less than count, no FILL instrument is needed.
+	int count;
+	//Where the first multi-returned expression is. 
+	//If it's -1, no expand is generated.
+	int firstmulti;
+} ls_MultiExprInfo;
 
 typedef struct ls_Vardesc
 {

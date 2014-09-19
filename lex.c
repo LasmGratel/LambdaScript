@@ -231,6 +231,18 @@ void lsX_next(ls_LexState* ls)
 		case '"':
 			string(ls);
 			return_type(TK_STRING);
+		case '.':
+			next();
+			if (c != '.')
+			{
+				return_type('.');
+			}
+			next();
+			if (c != '.')
+			{
+				lex_error("bad token");
+			}
+			return_type(TK_TRIDOT);
 		default:
 			if (lislalpha(c))
 			{

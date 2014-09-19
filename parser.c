@@ -117,6 +117,7 @@ static void localvarassign(ls_ParserData* pd, ls_Assignment* assign, int n)
 		}
 		else
 		{
+			/*
 			//Do multiassignment
 			next_token();
 			ls_Expr r;
@@ -144,6 +145,11 @@ static void localvarassign(ls_ParserData* pd, ls_Assignment* assign, int n)
 
 			//Set local visible
 			lsYL_localvisiblestart(pd, n);
+			return;
+			*/
+			assignment(pd, assign, n);
+			lsYL_localvisiblestart(pd, n);
+
 			return;
 		}
 	}

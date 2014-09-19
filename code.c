@@ -32,6 +32,9 @@
 #define expr_is_unavailable(s) (expr_t(s) == EXP_UNAVAILABLE)
 #define expr_is_indexed(s) (expr_t(s) == EXP_INDEXED)
 #define expr_is_closure(s) (expr_t(s) == EXP_CLOSURE)
+#define expr_is_funcioncall(s) (expr_t(s) == EXP_CALL_SINGLERET || expr_t(s) == EXP_CALL_LISTRET || expr_t(s) == EXP_CALL_MULTIRET)
+
+#define expr_f(e) (&(e)->u.f.f)
 
 
 #define sexpr_is_stored(s) (sexpr_t(s) == EXP_LOCAL || sexpr_t(s) == EXP_TEMP || sexpr_t(s) == EXP_UPVAL || sexpr_t(s) == EXP_CONST)
@@ -44,7 +47,10 @@
 #define OP_MOVE          3 //799 0 to from
 #define OP_JUMP          4 //799 closeup ? ?
 #define OP_CLOSURE       5 //799 protoid resultto ?
-#define OP_FILL          6 //799 tostack ? ?
+#define OP_EXPANDFILL    6 //799 expand_from+1 fill_to+1
+#define OP_CALL          7 //799 calltype function
+
+#define OP_CALL_SUBTYPE(et) ((et) - EXP_CALL_SINGLERET)
 
 #define make_op_7799(a, b, c, d) ((((((a << 7) + b) << 9) + c) << 9) + d)
 
@@ -77,6 +83,12 @@ static Instruction move(ls_StoredExpr* l, ls_StoredExpr* r)
 static Instruction makeclosure(ls_ClosureExpr* cl, ls_StoredExpr* store_at)
 {
 	return make_op_7799(OP_CLOSURE, cexpr_id(cl), storedcode9(store_at), 0);
+}
+
+static Instruction callfunction(ls_StoredExpr* func, int subtype)
+{
+	ls_assert(sexpr_t(func) == EXP_TEMP);
+	return make_op_7799(OP_CALL, subtype, storedcode9(func), 0);
 }
 
 /* helper */
@@ -134,6 +146,15 @@ static void domakeclosure(ls_ParserData* pd, ls_Expr* v)
 	
 	write_code(pd, makeclosure(expr_c(v), &e));
 	*expr_s(v) = e;
+}
+
+static void docallfunction(ls_ParserData* pd, ls_Expr* v)
+{
+	ls_assert(expr_is_funcioncall(v) && sexpr_t(expr_f(v)) == EXP_TEMP);
+	write_code(pd, callfunction(expr_f(v), OP_CALL_SUBTYPE(expr_t(v))));
+	//Set v as EXP_TEMP
+	ls_StoredExpr func = *expr_f(v);
+	*expr_s(v) = func;
 }
 
 /* generator api */
@@ -197,6 +218,8 @@ void lsK_makeindexed(ls_ParserData* pd, ls_Expr* v, ls_Expr* key)
 	ls_assert(expr_is_stored(v) || expr_is_stored(key));
 
 	//Calculate table and key first
+	//Note that table or key maybe functioncall (can only be single returned).
+	//In this case, storeexpr here will push the only value to stack.
 	lsK_storeexpr(pd, v);
 	lsK_storeexpr(pd, key);
 
@@ -211,6 +234,11 @@ void lsK_makeindexed(ls_ParserData* pd, ls_Expr* v, ls_Expr* key)
 
 void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 {
+	//If list call is used in assignment, only the first return value is used.
+	//So we must convert it first
+	if (expr_t(r) == EXP_CALL_LISTRET)
+		expr_t(r) = EXP_CALL_SINGLERET;
+
 	if (expr_is_stack(l))
 	{
 		//Currently assign to stack is much more easier. (get table, make closure)
@@ -218,10 +246,14 @@ void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 		{
 		case EXP_INDEXED:
 			write_code(pd, gettable(expr_tab(r), expr_key(r), expr_s(l)));
+			//TODO pop temp?
 			return;
 		case EXP_CLOSURE:
 			write_code(pd, makeclosure(expr_c(r), expr_s(l)));
+			//TODO pop temp?
 			return;
+		//No functioncall here.
+		//Functioncall can't be directly assigned to a certain stack (need to be called first). Store and move.
 		}
 	}
 	
@@ -256,23 +288,33 @@ void lsK_prepmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info)
 
 void lsK_pushmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, ls_Expr* value)
 {
-	ls_Expr temp;
-	expr_t(&temp) = EXP_LOCAL;//make it local to be assigned
-	sexpr_id(expr_s(&temp)) = new_temp_id();
-	lsK_assign(pd, &temp, value);
-	expr_t(&temp) = EXP_TEMP;
+	switch (expr_t(value))
+	{
+	case EXP_TEMP:
+		ls_assert(sexpr_id(expr_s(value)) == pd->pf->freereg); //must be the last
+		break;
+	case EXP_NTF:
+		//store not process NTF, so here we must force store it
+	{
+		ls_Expr temp;
+		expr_t(&temp) = EXP_LOCAL;//make it local to be assigned
+		sexpr_id(expr_s(&temp)) = new_temp_id();
+		lsK_assign(pd, &temp, value);
+		break;
+	}
+	default:
+		lsK_storeexpr(pd, value);
+	}
+	//Clear the value for safety
+	expr_t(value) = EXP_UNAVAILABLE;
 }
 
 void lsK_adjustmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int n)
 {
-	write_code(pd, make_op_7799(OP_FILL, *info + n, 0, 0));
-	pd->pf->freereg = *info + n;
-}
-
-void lsK_getmultiassign(ls_ParserData* pd, ls_MultiAssignInfo* info, int i, ls_Expr* expr)
-{
-	expr_t(expr) = EXP_TEMP;
-	sexpr_id(expr_s(expr)) = *info + i;
+	//deprecated
+	ls_assert(0);
+	//write_code(pd, make_op_7799(OP_FILL, *info + n, 0, 0));
+	//pd->pf->freereg = *info + n;
 }
 
 void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
@@ -288,6 +330,17 @@ void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
 	case EXP_NTF:
 		//do nothing
 		break;
+	case EXP_CALL_LISTRET:
+		//Convert to single first
+		//list is only supported in lsK_pushtostack
+		expr_t(v) = EXP_CALL_SINGLERET;
+	case EXP_CALL_SINGLERET:
+		docallfunction(pd, v);
+		break;
+	case EXP_CALL_MULTIRET:
+		//Can not be stored
+	case EXP_UNAVAILABLE:
+		ls_assert(0);
 	}
 }
 
@@ -318,6 +371,81 @@ void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret)
 ls_Bool lsK_isexprmvalue(ls_ParserData* pd, ls_Expr* e)
 {
 	return expr_t(e) == -1;
+}
+
+ls_Bool lsK_issimplecall(ls_ParserData* pd, ls_Expr* e)
+{
+	if (expr_is_funcioncall(e))
+	{
+		//The return is not even used. So use the easiest SINGLERET 
+		expr_t(e) = EXP_CALL_SINGLERET;
+		lsK_pushtostack(pd, e);
+		pop_temp(pd, expr_s(e));
+		return ls_TRUE;
+	}
+	return ls_FALSE;
+}
+
+ls_Bool lsK_pushtostack(ls_ParserData* pd, ls_Expr* e)
+{
+	if (expr_is_funcioncall(e))
+	{
+		ls_assert(sexpr_t(expr_f(e)) == EXP_TEMP);
+		//Function call is processed separatedly
+		write_code(pd, callfunction(expr_f(e), OP_CALL_SUBTYPE(expr_t(e))));
+		//Set e to temp
+		ls_Bool ret = expr_t(e) == EXP_CALL_LISTRET;
+		ls_StoredExpr stack;
+		stack = *expr_f(e);
+		*expr_s(e) = stack;
+		return ret;
+	}
+
+	if (expr_t(e) != EXP_TEMP || sexpr_id(expr_s(e)) != pd->pf->freereg)
+	{
+		ls_Expr stack;
+		expr_t(&stack) = EXP_LOCAL; //Set to local to allow assignment
+		sexpr_id(expr_s(&stack)) = new_temp_id();
+
+		lsK_assign(pd, &stack, e);
+		sexpr_id(expr_s(e)) = sexpr_id(expr_s(&stack));
+		expr_t(e) = EXP_TEMP;
+	}
+	return ls_FALSE;
+}
+
+ls_Bool lsK_pushtostackmulti(ls_ParserData* pd, ls_Expr* e)
+{
+	if (expr_t(e) == EXP_CALL_LISTRET)
+		expr_t(e) = EXP_CALL_MULTIRET;
+	lsK_pushtostack(pd, e);
+	return ls_FALSE;
+}
+
+void lsK_finishmultiexpr(ls_ParserData* pd, int expand_from, int fill_to)
+{
+	int real_fill_to = fill_to > pd->pf->freereg ? fill_to : -1;
+	if (expand_from > -1 || real_fill_to > -1)
+		write_code(pd, make_op_7799(OP_EXPANDFILL, expand_from + 1, real_fill_to + 1, 0));
+	if (fill_to > -1)
+		pd->pf->freereg = fill_to;
+}
+
+void lsK_getlocalat(ls_ParserData* pd, int pos, ls_Expr* expr)
+{
+	expr_t(expr) = EXP_TEMP;
+	sexpr_id(expr_s(expr)) = pos;
+}
+
+void lsK_makecall(ls_ParserData* pd, ls_Expr* func, ls_Bool is_multi)
+{
+	ls_Expr c;
+	expr_t(&c) = is_multi ? EXP_CALL_LISTRET : EXP_CALL_SINGLERET;
+	ls_assert(expr_is_temp(func));
+	*expr_f(&c) = *expr_s(func);
+	*func = c;
+	//Now the arguments are already poped
+	pd->pf->freereg = sexpr_id(expr_f(func)) + 1;
 }
 
 /* review */
@@ -401,8 +529,18 @@ static void print_code(Instruction code)
 		printf(" :=");
 		printf(" PROTO(%d) ", a);
 		break;
-	case OP_FILL:
-		printf("FILL      %d", a);
+	case OP_CALL:
+		printf("CALL      %s ", a == 0 ? "SINGLE" : a == 1 ? "LIST" : "MULTI");
+		print9(b);
+		break;
+	case OP_EXPANDFILL:
+		printf("ADJUST   ");
+		if (a)
+			print7(a - 1);
+			printf(" ->");
+		if (b)
+			print7(b - 1);
+		break;
 	}
 }
 

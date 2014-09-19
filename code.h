@@ -35,7 +35,23 @@ LSI_EXTERN void lsK_closeupvalue(ls_ParserData* pd, int n);
 LSI_EXTERN void lsK_makeclosure(ls_ParserData* pd, int p, ls_Expr* ret);
 //Return true if the result of `e` may contain multiple values
 LSI_EXTERN ls_Bool lsK_isexprmvalue(ls_ParserData* pd, ls_Expr* e);
+//Check if e is a call. If it is, call it and clear all return value.
+//Used when the statement finishes without '=' (then the expression must be a call).
+LSI_EXTERN ls_Bool lsK_issimplecall(ls_ParserData* pd, ls_Expr* e);
+//Push the expresssion to THE TOP OF the stack. The temp used by it will be poped
+//Return true if e is needed to expand (it's a list-returned function call)
+LSI_EXTERN ls_Bool lsK_pushtostack(ls_ParserData* pd, ls_Expr* e);
+//Like lsK_pushtostack, but function with multiple return will be called as MULTI instead of LIST
+//Always return false
+LSI_EXTERN ls_Bool lsK_pushtostackmulti(ls_ParserData* pd, ls_Expr* e);
+//func is the function pushed on the stack, and all temps on stack after func are used as arguments
+//Must be stacked (and the arguments are poped) before using the stack for other temps
+LSI_EXTERN void lsK_makecall(ls_ParserData* pd, ls_Expr* func, ls_Bool is_multi);
+
+LSI_EXTERN void lsK_finishmultiexpr(ls_ParserData* pd, int expand_from, int fill_to);
 
 LSI_EXTERN void lsK_reviewcode(ls_Proto* p);
+
+LSI_EXTERN void lsK_getlocalat(ls_ParserData* pd, int pos, ls_Expr* expr);
 
 #endif
