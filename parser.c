@@ -22,6 +22,35 @@ static ls_Proto* leavefunc(ls_ParserData* pd);
 #include "parser_expr.h"
 #include "parser_ctrl.h"
 
+//Support vararg. '...' is used for the rest of params and it's an ordinary table.
+//As other params, '...' is a local (the last one).
+static void paramlist(ls_ParserData* pd)
+{
+	ls_Expr param;
+
+	//Test empty list
+	if (pd->ls->current.t == ')')
+		return;
+
+	int count = 0;
+	do
+	{
+		if (pd->ls->current.t == TK_TRIDOT) //'...'
+		{
+			lsYL_newlocal(pd, pd->namevp, &param);
+			pd->pf->f->is_vararg = ls_TRUE;
+			lsYL_localvisiblestart(pd, 1);//one more local
+			next_token();
+			break; //This should be the last param in list
+		}
+		lsYL_newlocal(pd, check_get_identifier(), &param);
+		next_token();
+		++count;
+	} while (next_when(','));
+	lsYL_localvisiblestart(pd, count);
+	pd->pf->f->numparams = count;
+}
+
 static void funcbody(ls_ParserData* pd, ls_Expr* v)
 {
 	//Stack objects
@@ -31,14 +60,15 @@ static void funcbody(ls_ParserData* pd, ls_Expr* v)
 	//Enter func to declare parameters
 	enterfunc(pd, &pf);
 
+	//Enter block
+	enterblock(pd, &bl, ls_FALSE);
+
 	//Read parlist
 	check_and_next('(');
-	//Currently don't support parameters
+	paramlist(pd); //params as local
 	check_and_next(')');
 
 	check_and_next('{');
-	//Now enter block
-	enterblock(pd, &bl, ls_FALSE);
 
 	statlist(pd, '}');
 
@@ -337,7 +367,8 @@ void lsY_rawparse(ls_State* L, ls_LexState* zin)
 	pd.L = L;
 	pd.ls = zin;
 
-	pd.nameg = lsS_newstr(L, "_G");
+	pd.nameg = lsS_newstr(L, ".G"); //make it inaccessible
+	pd.namevp = lsS_newstr(L, "...");
 	//TODO not attached
 
 	//Start input

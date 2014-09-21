@@ -57,7 +57,11 @@ static void functioncall(ls_ParserData* pd, ls_Expr* v)
 
 static void singlevar(ls_ParserData* pd, ls_Expr* v)
 {
-	ls_String* var = check_get_identifier();
+	ls_String* var;
+	if (pd->ls->current.t == TK_TRIDOT)
+		var = pd->namevp;
+	else
+		var = check_get_identifier();
 
 	//Just let lsYL part to do the search (locals and upvals)
 	ls_Bool islocal = ls_FALSE;

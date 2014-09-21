@@ -133,6 +133,8 @@ typedef struct ls_ParserData
 
 	//name of global (as an upval)
 	ls_String* nameg;
+	//name of varargs (as local table)
+	ls_String* namevp;
 
 	/* list of active local variables */
 	//map from function's i-th local to locals in Proto (which contains not only active)

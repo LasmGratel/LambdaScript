@@ -127,7 +127,7 @@ int main()
 		};
 		ls_Stream stream;
 		ls_LexState lex;
-		const char* code = "func f(){};var a,b=f(f())...;";
+		const char* code = "func f(a,...){a=...;};";
 		//char code[1000];
 		//gets_s(code, sizeof(code));
 		set_string_stream(&stream, code);
