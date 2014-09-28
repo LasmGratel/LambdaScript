@@ -9,8 +9,27 @@
 #define OP_CLOSURE       5 //799 protoid resultto ?
 #define OP_EXPANDFILL    6 //799 expand_from+1 fill_to+1
 #define OP_CALL          7 //799 calltype function
+#define OP_TEST          8 //799 iftype left right  (if left ? right then PC++)
+#define OP_UNOP          9 //799 subtype to operand
+#define OP_BINOP_START  10 //799 to left right
+//...binary operator codes...
+
 
 #define OP_CALL_SUBTYPE(et) ((et) - EXP_CALL_SINGLERET)
+#define OP_UNOP_SUBTYPE(opr) (opr)
+#define OP_BINOP_CODE(opr) (OP_BINOP_START + (opr))
+
+/* test subtype */
+enum {
+	OP_TEST_EQ,
+	OP_TEST_NE,
+	OP_TEST_LT,
+	OP_TEST_GT,
+	OP_TEST_LE,
+	OP_TEST_GE,
+	OP_TEST_NIL,
+	OP_TEST_NNIL,
+};
 
 /* Expression and assignment basic */
 LSI_EXTERN void lsK_makenil(ls_ParserData* pd, ls_Expr* expr);
@@ -51,5 +70,9 @@ LSI_EXTERN void lsK_makecall(ls_ParserData* pd, ls_Expr* func, ls_Bool is_multi)
 LSI_EXTERN void lsK_finishmultiexpr(ls_ParserData* pd, int expand_from, int fill_to);
 //Get the temp var on stack.
 LSI_EXTERN void lsK_getlocalat(ls_ParserData* pd, int pos, ls_Expr* expr);
+//Create a subexp (unary operator)
+LSI_EXTERN void lsK_makeunopr(ls_ParserData* pd, UnOpr opr, ls_Expr* expr);
+//Create a subexp (binary operator), merged into l
+LSI_EXTERN void lsK_makebinopr(ls_ParserData* pd, BinOpr opr, ls_Expr* l, ls_Expr* r);
 
 #endif

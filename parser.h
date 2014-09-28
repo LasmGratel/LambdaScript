@@ -29,11 +29,32 @@ typedef enum
 	EXP_CALL_LISTRET,
 	EXP_CALL_MULTIRET,
 
+	/* Operator */
+	EXP_UNOPR,
+	EXP_BINOPR,
+
 	//EXP_TEMP will become EXP_UNAVAILABLE after it's poped from stack
 	EXP_UNAVAILABLE,
 } ls_Expkind;
 
-enum {
+//Consistent with parse(@priority, @getbinopr) and review module(@print_code)
+typedef enum
+{
+	OPR_ADD, OPR_SUB, OPR_MUL, OPR_DIV,
+	OPR_EQ, OPR_LT, OPR_LE,
+	OPR_NE, OPR_GT, OPR_GE,
+	/*
+	OPR_MOD, OPR_POW,
+	OPR_CONCAT,
+	OPR_AND, OPR_OR,
+	*/
+	OPR_NOBINOPR
+} BinOpr;
+
+typedef enum { OPR_MINUS, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
+
+enum
+{
 	EXP_NTF_NIL,
 	EXP_NTF_TRUE,
 	EXP_NTF_FALSE,
@@ -70,6 +91,17 @@ typedef struct ls_CallExpr
 	ls_StoredExpr f;//Index of the function on stack. The params are pushed after.
 } ls_CallExpr;
 
+typedef struct ls_OprExpr
+{
+	ls_Expkind k;
+	union {
+		UnOpr u;
+		BinOpr b;
+	} opr;
+	ls_StoredExpr l;
+	ls_StoredExpr r;
+} ls_OprExpr;
+
 typedef struct ls_Expr {
 	union
 	{
@@ -79,6 +111,7 @@ typedef struct ls_Expr {
 		ls_ClosureExpr c;
 		ls_NTFExpr n;
 		ls_CallExpr f;
+		ls_OprExpr o;
 	} u;
 	//int t;  /* patch list of `exit when true' */
 	//int f;  /* patch list of `exit when false' */

@@ -228,6 +228,10 @@ static void stat(ls_ParserData* pd)
 		localfunc(pd);
 		break;
 
+	case TK_IF:
+		ifstat(pd);
+		break;
+
 	case '{':
 		//New block
 		block(pd);

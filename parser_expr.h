@@ -174,7 +174,9 @@ static void primaryexp(ls_ParserData* pd, ls_Expr* v)
 {
 	if (pd->ls->current.t == '(')
 	{
-		not_supported_yet();
+		next_token();
+		expr(pd, v);
+		check_and_next(')');
 	}
 	else
 	{
@@ -238,14 +240,92 @@ constructor | FUNCTION body | suffixedexp */
 	}
 }
 
-static void subexp(ls_ParserData* pd, ls_Expr* v, int limit)
+static UnOpr getunopr(int op)
+{
+	switch (op)
+	{
+	case '-': return OPR_MINUS;
+	case '!': return OPR_NOT;
+	case '#': return OPR_LEN;
+	default: return OPR_NOUNOPR;
+	}
+}
+
+static BinOpr getbinopr(int op)
+{
+	switch (op)
+	{
+	case '+': return OPR_ADD;
+	case '-': return OPR_SUB;
+	case '*': return OPR_MUL;
+	case '/': return OPR_DIV;
+	case '<': return OPR_LT;
+	case '>': return OPR_GT;
+	case TK_LE: return OPR_LE;
+	case TK_GE: return OPR_GE;
+	case TK_EQ: return OPR_EQ;
+	case TK_NE: return OPR_NE;
+	/*
+	case TK_NE: return OPR_NE;
+	case TK_EQ: return OPR_EQ;
+	case '<': return OPR_LT;
+	case TK_LE: return OPR_LE;
+	case '>': return OPR_GT;
+	case TK_GE: return OPR_GE;
+	case TK_AND: return OPR_AND;
+	case TK_OR: return OPR_OR;
+	*/
+	default: return OPR_NOBINOPR;
+	}
+}
+
+static const struct
+{
+	ls_byte left;  /* left priority for each binary operator */
+	ls_byte right; /* right priority */
+} priority[] =
+{  /* ORDER OPR */
+	{ 6, 6 }, { 6, 6 }, { 7, 7 }, { 7, 7 },  /* `+' `-' `*' `/' */
+
+	{ 3, 3 }, { 3, 3 }, { 3, 3 },          /* ==, <, <= */
+	{ 3, 3 }, { 3, 3 }, { 3, 3 },          /* !=, >, >= */
+
+//	{ 7, 7 },                            /* '%' *.
+//	{ 10, 9 }, { 5, 4 },                 /* ^, .. (right associative) */
+//	{ 2, 2 }, { 1, 1 }                   /* and, or */
+};
+
+#define UNARY_PRIORITY	8  /* priority for unary operators */
+
+
+static BinOpr subexp(ls_ParserData* pd, ls_Expr* v, int limit)
 /*
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where `binop' is any binary operator with a priority higher than `limit'
 */
 {
-	//no op supported
-	simpleexp(pd, v);
+	UnOpr pre = getunopr(pd->ls->current.t);
+	if (pre == OPR_NOUNOPR)
+	{
+		simpleexp(pd, v);
+	}
+	else
+	{
+		next_token();
+		subexp(pd, v, UNARY_PRIORITY);
+		lsK_makeunopr(pd, pre, v);
+	}
+	BinOpr opr;
+	opr = getbinopr(pd->ls->current.t);
+	while (opr != OPR_NOBINOPR && priority[opr].left > limit)
+	{
+		ls_Expr r;
+		next_token();
+		BinOpr next = subexp(pd, &r, priority[opr].right);
+		lsK_makebinopr(pd, opr, v, &r);
+		opr = next;
+	}
+	return opr;
 }
 
 static void expr(ls_ParserData* pd, ls_Expr* v)

@@ -100,6 +100,52 @@ static void print_code(Instruction code)
 		if (b)
 			print7(b - 1);
 		break;
+	case OP_UNOP:
+	{
+		static const char* names[] = {
+			"MINUS",
+			"NOT",
+			"LEN",
+			"UNKNOWN",
+		};
+		if (a > OPR_NOUNOPR) a = OPR_NOUNOPR;
+		printf("CALC     ");
+		print9(b);
+		printf(" := %s", names[a]);
+		print9(c);
+		break;
+	}
+	case OP_BINOP_START + 0://+ - * /
+	case OP_BINOP_START + 1:
+	case OP_BINOP_START + 2:
+	case OP_BINOP_START + 3:
+	case OP_BINOP_START + 4://compare(6)
+	case OP_BINOP_START + 5:
+	case OP_BINOP_START + 6:
+	case OP_BINOP_START + 7:
+	case OP_BINOP_START + 8:
+	case OP_BINOP_START + 9:
+	{
+		static const char* names[] = {
+			"ADD",
+			"SUB",
+			"MUL",
+			"DIV",
+			"EQ",
+			"LT",
+			"LE",
+			"NE",
+			"GT",
+			"GE",
+		};
+		printf("CALC     ");
+		print7(a);
+		printf(" := %s", names[opcode - OP_BINOP_START]);
+		print9(b);
+		printf(",");
+		print9(c);
+		break;
+	}
 	}
 }
 

@@ -36,6 +36,11 @@
 
 #define expr_f(e) (&(e)->u.f.f)
 
+#define expr_o(e) (&(e)->u.o)
+#define expr_ol(e) (&expr_o(e)->l)
+#define expr_or(e) (&expr_o(e)->r)
+#define expr_ou(e) (expr_o(e)->opr.u)
+#define expr_ob(e) (expr_o(e)->opr.b)
 
 #define sexpr_is_stored(s) (sexpr_t(s) == EXP_LOCAL || sexpr_t(s) == EXP_TEMP || sexpr_t(s) == EXP_UPVAL || sexpr_t(s) == EXP_CONST)
 #define sexpr_is_stack(s)  (sexpr_t(s) == EXP_LOCAL || sexpr_t(s) == EXP_TEMP)
@@ -46,7 +51,7 @@
 
 #define new_temp_id() (pd->pf->freereg++)
 
-#define storedcode7(v) ((v->id) & 127)
+#define storedcode7(v) (((v)->id) & 127)
 #define storedcode9_q(k) (((k)==EXP_CONST) ? 0 : ((k)==EXP_LOCAL || (k)==EXP_TEMP) ? 128 : (k)==EXP_UPVAL ? 256 : /* EXP_NTF */(128+256) )
 #define storedcode9(v) (storedcode7(v) + storedcode9_q(sexpr_t(v)))
 
@@ -79,6 +84,18 @@ static Instruction callfunction(ls_StoredExpr* func, int subtype)
 {
 	ls_assert(sexpr_t(func) == EXP_TEMP);
 	return make_op_7799(OP_CALL, subtype, storedcode9(func), 0);
+}
+
+static Instruction calcunopr(ls_Expr* expr, ls_StoredExpr* store_at)
+{
+	return make_op_7799(OP_UNOP, expr_ou(expr),
+		storedcode9(store_at), storedcode9(expr_ol(expr)));
+}
+
+static Instruction calcbinopr(ls_Expr* expr, ls_StoredExpr* store_at)
+{
+	return make_op_7799(OP_BINOP_CODE(expr_ob(expr)), storedcode7(store_at),
+		storedcode9(expr_ol(expr)), storedcode9(expr_or(expr)));
 }
 
 /* helper */
@@ -145,6 +162,55 @@ static void docallfunction(ls_ParserData* pd, ls_Expr* v)
 	//Set v as EXP_TEMP
 	ls_StoredExpr func = *expr_f(v);
 	*expr_s(v) = func;
+}
+
+static void docalcunopr(ls_ParserData* pd, ls_Expr* v)
+{
+	ls_assert(expr_t(v) == EXP_UNOPR);
+	ls_StoredExpr e;
+	if (sexpr_t(expr_ol(v)) == EXP_TEMP)
+	{
+		//Use the same stack position
+		e = *expr_ol(v);
+	}
+	else
+	{
+		//Make a new temp
+		sexpr_t(&e) = EXP_TEMP;
+		sexpr_id(&e) = new_temp_id();
+	}
+	
+	write_code(pd, calcunopr(v, &e));
+	*expr_s(v) = e;
+}
+
+static void docalcbinopr(ls_ParserData* pd, ls_Expr* v)
+{
+	ls_assert(expr_t(v) == EXP_BINOPR);
+	ls_StoredExpr e;
+	ls_Bool pop_r;
+	if (sexpr_t(expr_ol(v)) == EXP_TEMP)
+	{
+		//Use left
+		e = *expr_ol(v);
+		pop_r = ls_TRUE;
+	}
+	else if (sexpr_t(expr_or(v)) == EXP_TEMP)
+	{
+		//Use right
+		e = *expr_or(v);
+		pop_r = ls_FALSE;
+	}
+	else
+	{
+		sexpr_t(&e) = EXP_TEMP;
+		sexpr_id(&e) = new_temp_id();
+		pop_r = ls_FALSE;
+	}
+
+	write_code(pd, calcbinopr(v, &e));
+	if (pop_r) pop_temp(pd, expr_or(v));
+	*expr_s(v) = e;
 }
 
 /* generator api */
@@ -244,6 +310,12 @@ void lsK_assign(ls_ParserData* pd, ls_Expr* l, ls_Expr* r)
 			return;
 		//No functioncall here.
 		//Functioncall can't be directly assigned to a certain stack (need to be called first). Store and move.
+		case EXP_BINOPR:
+			write_code(pd, calcbinopr(r, expr_s(l)));
+			return;
+		case EXP_UNOPR:
+			write_code(pd, calcunopr(r, expr_s(l)));
+			return;
 		}
 	}
 	
@@ -293,6 +365,12 @@ void lsK_storeexpr(ls_ParserData* pd, ls_Expr* v)
 		break;
 	case EXP_CALL_MULTIRET:
 		//Can not be stored
+	case EXP_UNOPR:
+		docalcunopr(pd, v);
+		break;
+	case EXP_BINOPR:
+		docalcbinopr(pd, v);
+		break;
 	case EXP_UNAVAILABLE:
 		ls_assert(0);
 	}
@@ -395,4 +473,26 @@ void lsK_makecall(ls_ParserData* pd, ls_Expr* func, ls_Bool is_multi)
 	*func = c;
 	//Now the arguments are already poped
 	pd->pf->freereg = sexpr_id(expr_f(func)) + 1;
+}
+
+void lsK_makeunopr(ls_ParserData* pd, UnOpr opr, ls_Expr* expr)
+{
+	lsK_storeexpr(pd, expr);
+	ls_Expr result;
+	expr_t(&result) = EXP_UNOPR;
+	expr_ou(&result) = opr;
+	*expr_ol(&result) = *expr_s(expr);
+	*expr = result;
+}
+
+void lsK_makebinopr(ls_ParserData* pd, BinOpr opr, ls_Expr* l, ls_Expr* r)
+{
+	lsK_storeexpr(pd, l);
+	lsK_storeexpr(pd, r);
+	ls_Expr result;
+	expr_t(&result) = EXP_BINOPR;
+	expr_ob(&result) = opr;
+	*expr_ol(&result) = *expr_s(l);
+	*expr_or(&result) = *expr_s(r);
+	*l = result;
 }

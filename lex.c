@@ -56,7 +56,7 @@
 
 //prepare for the strings
 static const char *const lsX_tokens[] = {
-	"var", "func",
+	"var", "func", "if", "else",
 	"nil", "true", "false",
 };
 
@@ -232,7 +232,7 @@ void lsX_next(ls_LexState* ls)
 			string(ls);
 			return_type(TK_STRING);
 		case '.':
-			next();
+			next();//TODO should next or peek here?
 			if (c != '.')
 			{
 				return_type('.');
@@ -243,6 +243,46 @@ void lsX_next(ls_LexState* ls)
 				lex_error("bad token");
 			}
 			return_type(TK_TRIDOT);
+		case '<':
+			if (peek() == '=')
+			{
+				skip();
+				return_type(TK_LE);
+			}
+			else
+			{
+				return_type('<');
+			}
+		case '>':
+			if (peek() == '=')
+			{
+				skip();
+				return_type(TK_GE);
+			}
+			else
+			{
+				return_type('>');
+			}
+		case '=':
+			if (peek() == '=')
+			{
+				skip();
+				return_type(TK_EQ);
+			}
+			else
+			{
+				return_type('=');
+			}
+		case '!':
+			if (peek() == '=')
+			{
+				skip();
+				return_type(TK_NE);
+			}
+			else
+			{
+				return_type('!');
+			}
 		default:
 			if (lislalpha(c))
 			{
